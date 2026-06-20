@@ -1983,6 +1983,36 @@ function franchiseSuggestionFromUrl(url) {
   return consoleSlugToLabel(slug);
 }
 
+// pcSeries (the PriceCharting product-page "Series:" row) carries the actual
+// property (e.g. "Hocus Pocus", "Dragon Ball Z") far more reliably than the
+// console. PriceCharting appends retailer/event/format qualifiers after a "." or
+// "," (e.g. "Dragon Ball Z. FYE", "My Hero Academia, Target"); we take the
+// leading segment and drop it when that segment is itself pure noise. Verified
+// against a live run: recovers 612/653 tagged records to a clean property.
+const PCSERIES_HARD_NOISE = new Set([
+  'walmart', 'wal-mart', 'only at walmart', 'funko shop', 'funko shop.',
+  'funko pop figure', 'vinyl figure', "collector's edition", 'impressions',
+  'icons', 'slam', 'target', 'gamestop', 'hot topic', 'boxlunch', 'box lunch',
+  'fye', 'f.y.e.', 'amazon', 'disney store', 'px previews exclusive',
+  'summer convention', 'summer funko convention', 'funko spring convention', 'tpm25',
+]);
+const PCSERIES_EVENT_KW = [
+  'exclusive', 'convention', 'sdcc', 'nycc', 'eccc', 'd23', 'comic con',
+  'celebration', 'loot crate', 'blizzard', 'walgreens', 'px previews', 'ccxp',
+  'lacc', 'galactic convention', 'limited edition', 'blacklight', 'funko fundays',
+  'funko shop', 'first to market',
+];
+
+function franchiseFromPcSeries(pcSeries) {
+  if (!pcSeries) return '';
+  const seg = pcSeries.split(/[.,]/)[0].trim();
+  if (!seg) return '';
+  const low = seg.toLowerCase();
+  if (PCSERIES_HARD_NOISE.has(low)) return '';
+  if (seg.split(/\s+/).length <= 4 && PCSERIES_EVENT_KW.some(k => low.includes(k))) return '';
+  return seg;
+}
+
 function deriveGroupingFields(enriched) {
   console.log('\n── Post-process: Derive setTag + franchiseSuggestion ─────────');
 
@@ -1999,7 +2029,10 @@ function deriveGroupingFields(enriched) {
     const setTag = pickSetTag(rec.series, tagFreq);
     if (setTag) { rec.setTag = setTag; setCount++; }
 
-    const fr = franchiseSuggestionFromUrl(rec.pricechartingUrl);
+    // Franchise: prefer the cleaned pcSeries property, else the property-specific
+    // console. Umbrella consoles and pure-noise pcSeries yield nothing → blank
+    // (the app prompts the user to assign).
+    const fr = franchiseFromPcSeries(rec.pcSeries) || franchiseSuggestionFromUrl(rec.pricechartingUrl);
     if (fr) { rec.franchiseSuggestion = fr; frCount++; }
   }
 

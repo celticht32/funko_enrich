@@ -124,6 +124,52 @@ for the crawl is auto-discovered; a hardcoded fallback exists if discovery fails
 
 ---
 
+## Handling a pasted run (workflow)
+
+When the user pastes enrich.js console output or uploads a `test_output.json` /
+`funko_data_enriched.json`, this is what they want done with it — don't just
+summarize the totals.
+
+**1. Read the summary line.** `Found: N (M approximate) | UPCs filled: U |
+Uncertain (skipped): S | Not found: F | Errors: E`. Errors should be 0 — any
+non-zero error count is a real bug to investigate. `M approximate` is how many
+were priced from a base figure (variant not separately listed).
+
+**2. Classify the uncertain skips — this is the main thing they want.** Each
+skip prints `→ "matched row name"`. Read those annotations and sort the skips:
+- **Correct skip — not in PriceCharting:** tees, backpacks, hats, "Box" collector
+  sets, pins, advent calendars, prototypes. No real Pop equivalent. Right to skip.
+- **Correct skip — different figure:** the matched name is clearly another
+  character ("Freddy Frostbear" → "Baseball Freddy", "Piccolo" → "Orange
+  Piccolo"). The gate did its job.
+- **Possibly-false skip — worth a look:** the matched name is the *same*
+  character but a different/renamed variant ("Hagrid (With Tree)" → "Rubeus
+  Hagrid"). These are the only ones worth investigating; if there are many,
+  consider whether the gate or a synonym/vocabulary issue is the cause.
+Tell the user which bucket dominates. A high skip rate made of buckets 1–2 is
+expected and correct on a variant/merch-heavy slice — say so, don't alarm.
+
+**3. Flag outlier prices, don't assume bugs.** Grail prices ($2,750 Vegeta, $262
+Electro) are usually real — PriceCharting genuinely lists them. If a price looks
+suspicious, the test is the saved product page, not a guess. A `$?` in a grade
+means that grade had no data (fine if the others are present).
+
+**4. Spot-check is mandatory before scaling.** The console proves the plumbing
+ran; only opening 2–3 sample `pricechartingUrl`s (or running
+`check_test_output.js`) proves the *matching picked the right figure*. Remind the
+user to do this; a confident-but-wrong match still prints a clean `✓`.
+
+**5. Remember the output file is post-processed.** Its record count is the
+deduped/filtered number (~12k), NOT the 23,940 input — that's expected, not data
+loss. The file is a test/production artifact, not a count check.
+
+**6. If a parser looks wrong, ask for the saved HTML page.** The entire
+debugging method here is verifying selectors against a real page the user saves
+from their browser (Ctrl+S → "Webpage, HTML only"). Never patch a parser by
+guessing at structure — request the page, verify against it, then fix.
+
+---
+
 ## Environment / conventions
 
 - Windows host; commands in cmd/PowerShell syntax.

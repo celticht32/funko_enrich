@@ -94,11 +94,16 @@ price records enriched by the earlier passes).
   unwanted variant tags). A **confidence gate** then decides whether to trust it:
   - record has no variant qualifiers + row is also base → priced
   - record's variant token (e.g. "metallic", "chase") appears in the row → priced
-  - record wants a variant but no token matched (e.g. catalog "Glow In The Dark"
-    vs PriceCharting "Chase GITD") → **skipped and logged as uncertain**, rather
-    than risk attaching the wrong variant's price. Stopwords (in/the/of/…) are
+  - record wants a variant PriceCharting doesn't list separately, but the row is
+    the SAME base figure (exact core-name match, no conflicting variant tag) →
+    priced from the base figure and flagged `marketValueIsApproximate: true`. The
+    exact-name requirement rejects fuller-named different figures ("Orange
+    Piccolo" for "Piccolo", "Robin as Nightwing" for "Robin").
+  - record wants a variant and the row is a different figure or a different
+    variant → **skipped and logged as uncertain**. Stopwords (in/the/of/…) are
     ignored so they can't cause a false match.
-  Summary line reports Found / Uncertain (skipped) / Not found / Errors.
+  Summary line reports Found (N approximate) / Uncertain (skipped) / Not found /
+  Errors. Approximate matches print with a `~approx` tag.
 - Captures **all three grades** inline from the search row: `marketValueLoose`
   (out of box), `marketValueComplete` (in box — primary), `marketValueNew`
   (mint). The product page is then visited to harvest metadata.

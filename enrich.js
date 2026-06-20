@@ -715,20 +715,43 @@ function pcMatchConfident(row, rec) {
     if (!coreNameCovered(rec.title, row.name)) {
       return { ok: false, reason: 'name mismatch (different figure)' };
     }
-    return { ok: true, reason: 'base/base' };
+    return { ok: true, reason: 'base/base', approximate: false };
   }
   // Record wants a variant.
   const positiveHit = wantTokens.some(t => row.name.toLowerCase().includes(t));
   // A variant match still needs the core name to line up, so a variant token
   // can't rescue a wrong character.
   if (positiveHit && coreNameCovered(rec.title, row.name)) {
-    return { ok: true, reason: 'variant token match' };
+    return { ok: true, reason: 'variant token match', approximate: false };
   }
-  // The record wants a variant but no row token matched it (or the name doesn't
-  // line up). A bare number match is NOT enough — PriceCharting may label the
-  // variant differently (e.g. "Glow In The Dark" vs "Chase GITD"), and matching
-  // the plain figure by number would attach the wrong price. Treat as uncertain.
+  // Approximate fallback: the record wants a variant PriceCharting doesn't list
+  // separately, but the row is the SAME base figure (exact core-name match, no
+  // conflicting variant token on the row). Take the base price as an approximate
+  // estimate, flagged so it's never mistaken for an exact variant price. The
+  // exact-core requirement (not just "covered") rejects fuller-named different
+  // figures like "Orange Piccolo" for "Piccolo" or "Robin as Nightwing" for
+  // "Robin", which a looser check would wrongly accept.
+  const rowHasOtherVariant = rowTokens.some(t => !wantTokens.includes(t));
+  if (!rowHasOtherVariant && coreNameExact(rec.title, row.name)) {
+    return { ok: true, reason: 'approximate (base price, variant not listed)', approximate: true };
+  }
+  // The record wants a variant but no row token matched it and it's not a clean
+  // base of the same figure. A bare number match is NOT enough — PriceCharting
+  // may label the variant differently (e.g. "Glow In The Dark" vs "Chase GITD"),
+  // and matching a different figure by number would attach the wrong price.
   return { ok: false, reason: 'variant qualifiers did not match (naming mismatch)' };
+}
+
+/**
+ * True when the record's core-name tokens EXACTLY equal the row's core-name
+ * tokens (as sets). Stricter than coreNameCovered: requires no extra words on
+ * either side, so "Piccolo" does NOT match "Orange Piccolo" and "Robin" does NOT
+ * match "Robin as Nightwing". Used to gate the approximate base-price fallback.
+ */
+function coreNameExact(recTitle, rowName) {
+  const a = coreNameTokens(recTitle).slice().sort().join(' ');
+  const b = coreNameTokens(rowName).slice().sort().join(' ');
+  return a.length > 0 && a === b;
 }
 
 /**
@@ -934,7 +957,7 @@ async function passPriceCharting(enriched, opts) {
   console.log(`  Candidates (${mode}): ${candidates.length} (limit: ${opts.pcLimit})`);
   console.log(`  Estimated time: ~${Math.ceil(candidates.length * PC_DELAY / 60000)} minutes`);
 
-  let found = 0, notFound = 0, errors = 0, uncertain = 0, upcFilled = 0;
+  let found = 0, notFound = 0, errors = 0, uncertain = 0, upcFilled = 0, approxFound = 0;
 
   // PriceCharting product pages require a real browser (plain fetch is blocked),
   // so spin up the same stealth Puppeteer setup the HobbyDB pass uses.
@@ -1015,6 +1038,9 @@ async function passPriceCharting(enriched, opts) {
       if (loose)    updates.marketValueLoose    = loose;
       if (complete) updates.marketValueComplete = complete;
       if (mint)     updates.marketValueNew      = mint;
+      // Flag approximate matches (variant record priced from the base figure
+      // because PriceCharting doesn't list the variant separately).
+      if (conf.approximate) updates.marketValueIsApproximate = true;
 
       // Harvest any metadata into fields the record is MISSING — never overwrite
       // existing values (HobbyDB/funko.com data is treated as authoritative).
@@ -1030,16 +1056,18 @@ async function passPriceCharting(enriched, opts) {
       enriched[idx] = { ...enriched[idx], ...updates };
       found++;
       if (updates.upc) upcFilled++;
+      if (conf.approximate) approxFound++;
       const metaTag = metaFilled ? ` +${metaFilled} meta` : '';
       const upcTag  = updates.upc ? ` +UPC` : '';
-      console.log(`✓ loose:$${loose || '?'} complete:$${complete || '?'} mint:$${mint || '?'}${metaTag}${upcTag}`);
+      const apxTag  = conf.approximate ? ` ~approx` : '';
+      console.log(`✓ loose:$${loose || '?'} complete:$${complete || '?'} mint:$${mint || '?'}${metaTag}${upcTag}${apxTag}`);
     }
   } finally {
     try { await browser.close(); } catch (_) {}
   }
 
-  console.log(`  Found: ${found} | UPCs filled: ${upcFilled} | Uncertain (skipped): ${uncertain} | Not found: ${notFound} | Errors: ${errors}`);
-  return { found, notFound, errors, uncertain, upcFilled };
+  console.log(`  Found: ${found} (${approxFound} approximate) | UPCs filled: ${upcFilled} | Uncertain (skipped): ${uncertain} | Not found: ${notFound} | Errors: ${errors}`);
+  return { found, notFound, errors, uncertain, upcFilled, approxFound };
 }
 
 
@@ -1869,6 +1897,7 @@ const MERGE_FIELDS = [
   'price', 'available', 'productUrl', 'funkoPrimaryImage', 'popType',
   'hotTopicSku', 'gamestopSku', 'targetSku', 'walmartSku', 'amazonSku',
   'franchise', 'funkoSection', 'pid', 'marketValueLoose', 'marketValueComplete', 'marketValueNew',
+  'marketValueIsApproximate',
   'pricechartingId', 'pricechartingUrl',
   'pcSeries', 'releaseDate', 'ebayEpid', 'amazonAsin', 'printRun', 'publisher', 'pcDescription',
 ];

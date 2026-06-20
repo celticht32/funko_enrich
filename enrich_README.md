@@ -29,6 +29,7 @@ node enrich.js [options]
 | `--skip-funko` | off | Skip Pass 2 |
 | `--skip-pc` | off | Skip Pass 3 |
 | `--pc-limit` | `500` | Max items to look up on PriceCharting (Pass 3) |
+| `--pc-crawl` | off | Enable Pass 3b: crawl PriceCharting to discover missing Pops |
 | `--skip-hdb` | off | Skip Pass 4 |
 | `--hdb-limit` | `200` | Max HobbyDB lookups per run (Pass 4) |
 | `--hdb-delay` | `1500` | Milliseconds between HobbyDB requests (Pass 4) |
@@ -82,18 +83,38 @@ price records enriched by the earlier passes).
 - Source: pricecharting.com (eBay sold-listing aggregator, free data, no API key)
 - Only runs on records that don't already have any market price
 - Two sub-requests per item: catalog search (plain JSON fetch) + product-page
-  price scrape. The product pages block plain fetches, so the price scrape runs
-  through **Puppeteer + stealth** (same browser approach as Pass 4), restarting
-  the browser every 200 records.
+  scrape. The product pages block plain fetches, so the page scrape runs through
+  **Puppeteer + stealth** (same browser approach as Pass 4), restarting the
+  browser every 200 records.
 - Captures **all three grades**: `marketValueLoose` (out of box),
   `marketValueComplete` (in box — the primary value), `marketValueNew` (mint).
   Parsed from the `#used_price` / `#complete_price` / `#new_price` page elements
   (verified against a live product page).
+- **Also harvests metadata** from the same page into fields the record is
+  MISSING (never overwrites existing data): `upc`, `funkoNumber`, `pcSeries`,
+  `releaseDate`, `ebayEpid`, `amazonAsin`, `printRun`, `publisher`,
+  `pcDescription`. This makes PriceCharting a second source to fill UPC/number
+  gaps HobbyDB (Pass 4) missed.
 - Uses 2.5s delay between requests to stay polite
-- Fields added: `marketValueLoose`, `marketValueComplete`, `marketValueNew`,
-  `pricechartingId`, `pricechartingUrl`
 - Use `--pc-limit` to cap how many items to look up (full run can take hours)
 - Runs **last**, after Passes 1, 2, 4, and 5, so it can price newly-added records
+
+### Pass 3b - PriceCharting Catalog Crawl (find missing Pops)
+- **OFF by default** — enable with `--pc-crawl`.
+- Walks PriceCharting's Funko "console" set listing pages and adds any Pop whose
+  PriceCharting id we don't already have as a new record. The listing rows carry
+  all three prices inline, so discovered Pops arrive **already priced** (loose /
+  complete / mint); Pass 3, which runs right after, then fills metadata (UPC,
+  number, release date) from each new record's product page.
+- Listing-row parser is **verified** against a live Funko list page: id comes
+  from the product link's `title` attribute, name from `td.title`, prices from
+  the Loose / CIB / New columns.
+- New records get `handle: pc-{id}`, `funkoSource: 'pricecharting'`, the PC
+  id/url, and inline prices.
+- **One thing to expand before a full run:** `PC_FUNKO_CONSOLES` in the code is a
+  starter list of set slugs. Add the rest of PriceCharting's Funko set slugs for
+  complete coverage (unknown slugs 404 and are skipped harmlessly). Run with a
+  small list first and eyeball the discovered rows.
 
 ### Pass 4 - HobbyDB Reference Numbers
 - Source: hobbydb.com catalog item pages (Puppeteer, reuses Pass 2's browser session)

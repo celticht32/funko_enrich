@@ -77,6 +77,7 @@ function parseArgs() {
       case '--skip-funko':  opts.skipFunko  = true; break;
       case '--skip-pc':     opts.skipPc     = true; break;
       case '--pc-limit':    opts.pcLimit    = parseInt(args[++i], 10); break;
+      case '--pc-crawl':    opts.pcCrawl    = true; break;
       case '--chrome-path': opts.chromePath = args[++i]; break;
       case '--pops-only':   opts.popsOnly   = true; break;
       case '--no-pop-filter': opts.popFilter = false; break;
@@ -665,11 +666,51 @@ function parsePriceChartingHtml(html) {
 }
 
 /**
+ * Parse the clean metadata rows from a PriceCharting product page. The page's
+ * attribute table lists "Label: => Value" rows (Series, Release Date, Box
+ * Number, UPC, ePID, etc.). We read every such row, drop "none"/"n/a"/empty,
+ * and map the useful ones onto our field names. Verified against a live page.
+ * Returns an object with only the fields PriceCharting actually provided.
+ */
+function parsePriceChartingMeta(html) {
+  const $ = cheerio.load(html);
+  const rows = {};
+  $('tr').each((i, el) => {
+    const tds = $(el).find('td');
+    if (tds.length < 2) return;
+    let k = $(tds[0]).text().trim().replace(/\s+/g, ' ');
+    const v = $(tds[1]).text().trim().replace(/\s+/g, ' ');
+    if (!k.endsWith(':')) return;            // only the clean "Label:" rows
+    k = k.slice(0, -1).trim();
+    if (!v || /^(none|n\/a)$/i.test(v)) return;
+    rows[k] = v;
+  });
+  const pick = (...names) => { for (const n of names) if (rows[n]) return rows[n]; return null; };
+
+  let releaseDate = null;
+  const dateRaw = pick('Release Date');
+  if (dateRaw) { const d = new Date(dateRaw); if (!isNaN(d)) releaseDate = d.toISOString().slice(0, 10); }
+  const boxNum = pick('Box Number');
+
+  const meta = {};
+  const upc = pick('UPC');                    if (upc)         meta.upc          = upc.replace(/[^0-9]/g, '');
+  if (boxNum)                                                  meta.funkoNumber  = boxNum.replace(/[^0-9]/g, '');
+  const series = pick('Series');              if (series)      meta.pcSeries     = series;
+  if (releaseDate)                                             meta.releaseDate  = releaseDate;
+  const epid = pick('ePID (eBay)');           if (epid)        meta.ebayEpid     = epid;
+  const asin = pick('ASIN (Amazon)');         if (asin)        meta.amazonAsin   = asin;
+  const printRun = pick('Print Run');         if (printRun)    meta.printRun     = printRun;
+  const publisher = pick('Publisher');        if (publisher)   meta.publisher    = publisher;
+  const desc = pick('Description');           if (desc)        meta.pcDescription = desc;
+  return meta;
+}
+
+/**
  * Fetch a PriceCharting product page through the shared Puppeteer page (real
  * browser + stealth) and parse all three grades. PriceCharting blocks plain
  * fetches of product pages, so the price scrape must go through the browser —
  * the same approach the HobbyDB pass uses. `page` is an already-open Puppeteer
- * page. Returns { loose, complete, mint, url } or null on failure.
+ * page. Returns { loose, complete, mint, url, meta } or null on failure.
  */
 async function scrapePriceChartingPrices(page, productId, consoleName) {
   const consoleSlug = (consoleName || '')
@@ -682,6 +723,7 @@ async function scrapePriceChartingPrices(page, productId, consoleName) {
     // The price table is server-rendered; a short settle is enough.
     const html = await page.content();
     const prices = parsePriceChartingHtml(html);
+    prices.meta = parsePriceChartingMeta(html);
     if (!prices.url) prices.url = url;
     return prices;
   } catch (err) {
@@ -766,9 +808,21 @@ async function passPriceCharting(enriched, opts) {
       if (prices.complete) updates.marketValueComplete = prices.complete;
       if (prices.mint)     updates.marketValueNew      = prices.mint;
 
+      // Harvest any metadata into fields the record is MISSING — never overwrite
+      // existing values (HobbyDB/funko.com data is treated as authoritative).
+      const meta = prices.meta || {};
+      let metaFilled = 0;
+      for (const [k, v] of Object.entries(meta)) {
+        if (v && (rec[k] === undefined || rec[k] === null || rec[k] === '')) {
+          updates[k] = v;
+          metaFilled++;
+        }
+      }
+
       enriched[idx] = { ...enriched[idx], ...updates };
       found++;
-      console.log(`✓ loose:$${prices.loose || '?'} complete:$${prices.complete || '?'} mint:$${prices.mint || '?'}`);
+      const metaTag = metaFilled ? ` +${metaFilled} meta` : '';
+      console.log(`✓ loose:$${prices.loose || '?'} complete:$${prices.complete || '?'} mint:$${prices.mint || '?'}${metaTag}`);
     }
   } finally {
     try { await browser.close(); } catch (_) {}
@@ -776,6 +830,146 @@ async function passPriceCharting(enriched, opts) {
 
   console.log(`  Found: ${found} | Not found: ${notFound} | Errors: ${errors}`);
   return { found, notFound, errors };
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PASS 3b — PriceCharting catalog crawl (discover Funko Pops not in our catalog)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * PriceCharting groups Funko Pops into "console" sets, each with a listing page:
+ *   https://www.pricecharting.com/console/{slug}            (page 1)
+ *   https://www.pricecharting.com/console/{slug}?... / next link for pagination
+ *
+ * This pass walks each Funko set's listing pages, reads every product row
+ * (parsePriceChartingListing — VERIFIED against a live Funko list page: id from
+ * the link's title attr, name from td.title, and all three prices inline), and
+ * adds any Pop whose PriceCharting id we don't already have as a new, already-
+ * priced record. Pass 3 (run after) can still fill metadata from product pages.
+ *
+ * ONE thing still to confirm before a full run: PC_FUNKO_CONSOLES below is a
+ * STARTER list of set slugs. Enumerate PriceCharting's complete Funko set list
+ * from their Funko category index and expand this array for full coverage.
+ * Unknown slugs simply 404 and are skipped, so a wrong slug is harmless.
+ *
+ * OFF by default (requires --pc-crawl).
+ */
+
+// Starter list — EXPAND after verifying against the Funko category index.
+const PC_FUNKO_CONSOLES = [
+  'funko-pop-animation', 'funko-pop-movies', 'funko-pop-television',
+  'funko-pop-games', 'funko-pop-marvel', 'funko-pop-star-wars',
+  'funko-pop-disney', 'funko-pop-heroes', 'funko-pop-rocks',
+  'funko-pop-sports', 'funko-pop-ad-icons', 'funko-pop-rides',
+];
+
+/**
+ * Parse a PriceCharting listing/search page into product rows. VERIFIED against
+ * a live Funko list page. Structure: table#games_table, one <tr> per product:
+ *   - a[href*="/game/"] — product URL; its title="" attribute is the PC id
+ *   - td.title          — product name (incl. variant tags like "[Metallic]")
+ *   - columns Loose / CIB Price / New Price carry the three grade prices inline
+ * So a listing row already gives id, name, console slug, URL, AND all 3 prices —
+ * no per-product page visit needed for discovery.
+ */
+function parsePriceChartingListing(html) {
+  const $ = cheerio.load(html);
+  const out = [];
+  const num = (txt) => { const m = (txt || '').match(/\$\s*([\d,]+\.\d{2})/); return m ? m[1].replace(/,/g, '') : null; };
+  $('#games_table tbody tr').each((i, el) => {
+    const a = $(el).find('a[href*="/game/"]').first();
+    const href = a.attr('href') || '';
+    if (!href) return;
+    const id = (a.attr('title') || '').trim() || href.split('-').pop();
+    const name = $(el).find('td.title').text().trim().replace(/\s+/g, ' ');
+    const consoleSlug = (href.match(/\/game\/([^/]+)\//) || [])[1] || '';
+    out.push({
+      id,
+      name,
+      console: consoleSlug,
+      href: href.startsWith('http') ? href : `${PC_BASE}${href}`,
+      loose:    num($(el).find('td').eq(3).text()),
+      complete: num($(el).find('td').eq(4).text()),
+      mint:     num($(el).find('td').eq(5).text()),
+    });
+  });
+  return out;
+}
+
+async function passPriceChartingCrawl(enriched, opts) {
+  console.log('\n── Pass 3b: PriceCharting catalog crawl ──────────────────────');
+  if (!opts.pcCrawl) {
+    console.log('  SKIPPED — pass disabled (enable with --pc-crawl once the');
+    console.log('  console list and listing-row selector are verified; see code).');
+    return { discovered: 0, added: 0, pages: 0 };
+  }
+
+  // Index of PriceCharting ids we already have, to dedupe discoveries.
+  const havePcId = new Set(
+    enriched.map(r => r.pricechartingId).filter(Boolean).map(String)
+  );
+
+  const chromePath = findChrome(opts.chromePath);
+  let browser = await puppeteer.launch({
+    executablePath: chromePath,
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled', '--window-size=1280,900'],
+  });
+  let page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 900 });
+  await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
+
+  let discovered = 0, added = 0, pages = 0;
+  try {
+    for (const slug of PC_FUNKO_CONSOLES) {
+      let url = `${PC_BASE}/console/${slug}`;
+      let guard = 0;
+      while (url && guard < 50) {          // hard page cap per set
+        guard++; pages++;
+        process.stdout.write(`  ${slug} p${guard} `);
+        let stubs = [];
+        try {
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          const html = await page.content();
+          stubs = parsePriceChartingListing(html);
+          // Pagination: PriceCharting uses a "next" link; follow it if present.
+          const $ = cheerio.load(html);
+          const next = $('a#next, a.next, a[rel="next"]').attr('href');
+          url = next ? (next.startsWith('http') ? next : `${PC_BASE}${next}`) : null;
+        } catch (e) {
+          console.log('(page error)'); url = null; continue;
+        }
+        console.log(`${stubs.length} rows`);
+        for (const s of stubs) {
+          if (!s.id || havePcId.has(String(s.id))) continue;
+          discovered++;
+          havePcId.add(String(s.id));
+          // Listing rows carry all three prices inline, so a discovered Pop
+          // arrives already-priced. Pass 3 (run after) can still fill metadata
+          // (UPC, number, release date) from its product page.
+          const rec = {
+            handle: `pc-${s.id}`,
+            title: s.name,
+            funkoSource: 'pricecharting',
+            pricechartingId: String(s.id),
+            pricechartingUrl: s.href,
+          };
+          if (s.loose)    rec.marketValueLoose    = s.loose;
+          if (s.complete) rec.marketValueComplete = s.complete;
+          if (s.mint)     rec.marketValueNew      = s.mint;
+          enriched.push(rec);
+          added++;
+        }
+        await sleep(PC_DELAY);
+      }
+    }
+  } finally {
+    try { await browser.close(); } catch (_) {}
+  }
+
+  console.log(`  Pages crawled: ${pages} | New Pops discovered: ${added}`);
+  return { discovered, added, pages };
 }
 
 
@@ -1391,6 +1585,7 @@ const MERGE_FIELDS = [
   'hotTopicSku', 'gamestopSku', 'targetSku', 'walmartSku', 'amazonSku',
   'franchise', 'funkoSection', 'pid', 'marketValueLoose', 'marketValueComplete', 'marketValueNew',
   'pricechartingId', 'pricechartingUrl',
+  'pcSeries', 'releaseDate', 'ebayEpid', 'amazonAsin', 'printRun', 'publisher', 'pcDescription',
 ];
 
 function mergeDuplicateHandles(enriched) {
@@ -1455,6 +1650,7 @@ async function main() {
     kenny:        { newCount: 0, enrichedCount: 0 },
     funko:        { totalScraped: 0, newCount: 0, enrichedCount: 0 },
     pricecharting:{ found: 0, notFound: 0, errors: 0 },
+    pricechartingCrawl:{ discovered: 0, added: 0, pages: 0 },
     hobbydb:      { found: 0, notFound: 0, errors: 0 },
     funkoDetail:  { enriched: 0, notFound: 0, errors: 0 },
   };
@@ -1485,6 +1681,12 @@ async function main() {
     stats.funkoDetail = await passFunkoDetails(enriched, opts);
   } else {
     console.log('\n── Pass 5: funko.com detail pages — SKIPPED (--skip-funko-detail)');
+  }
+
+  // Pass 3b — PriceCharting catalog crawl (discover missing Pops) — runs BEFORE
+  // Pass 3 pricing so newly-discovered records get priced in the same run.
+  if (!opts.skipPc) {
+    stats.pricechartingCrawl = await passPriceChartingCrawl(enriched, opts);
   }
 
   // Pass 3 — PriceCharting (before post-processing so merges include PC data)

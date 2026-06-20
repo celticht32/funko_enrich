@@ -1879,6 +1879,137 @@ function extractNumbersFromTitles(enriched) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// POST-PROCESS 5 — Derive setTag + franchiseSuggestion (collection grouping)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Two grouping fields consumed by the FunkoDex app's series-completion / want-list
+// feature (see FunkoDex SERIES_COMPLETION_SPEC). Both are SUGGESTIONS / enrichment:
+// the app's user-assigned franchise always wins, and setTag drives the secondary
+// named-set completion. Computed from data already present on the record — no
+// extra network calls.
+//
+//   setTag             — the most-specific NAMED SET a figure belongs to
+//                        (e.g. "Haunted Mansion Mini Vinyl Figures"), derived from
+//                        the record's `series` tags. "" when the figure is in no
+//                        named set (most Pop! figures). NOT the Pop! product line.
+//
+//   franchiseSuggestion — a property-level franchise pre-fill for the app's
+//                        first-scan prompt, derived from the PriceCharting console
+//                        in `pricechartingUrl`. ONLY emitted when the console is
+//                        property-specific (e.g. funko-pop-harry-potter). Umbrella
+//                        / genre consoles (disney, animation, movies, marvel, …)
+//                        carry no property signal and are omitted, so the app does
+//                        not pre-fill a misleading label. Verified against a live
+//                        run's console distribution: Hocus Pocus figures sit under
+//                        funko-pop-disney (umbrella → omitted), so the user assigns
+//                        the property by hand; Harry Potter has its own console
+//                        (→ suggested). The suggestion is a hint only; the user
+//                        confirms or overrides it.
+
+// Named-set detection. A real set tag ends in a specific set-type suffix and is
+// NOT a Pop! product line, a generic mini line, an Advent Calendar, or a
+// retailer/convention exclusive. Verified against a live run: this yields 13
+// clean themed-set tags (Mystery Boxes, Vinyl Sets, Haunted Mansion Mini Vinyl
+// Figures) with no false positives, resolving all Haunted Mansion records to
+// "Haunted Mansion Mini Vinyl Figures".
+const SET_SUFFIXES = [
+  'mini vinyl figures', 'advent calendar', 'mystery box', 'vinyl sets',
+  'gift set', 'collectors set', 'diorama', 'build a scene', 'build-a-scene',
+];
+const SET_EXCLUDE_KW = [
+  'exclusive', 'gamestop', 'eb games', 'convention', 'comic con',
+  'sdcc', 'nycc', 'eccc',
+];
+// Generic product lines that match a set suffix but are NOT a specific themed set
+// (e.g. an Advent Calendar is a yearly product; "Funko Mini Vinyl Figures" is the
+// generic mini line, not a themed set like "Haunted Mansion Mini Vinyl Figures").
+// Matched case-insensitively against the whole tag.
+const SET_GENERIC_LINES = new Set([
+  'funko advent calendar',
+  'funko mini vinyl figures',
+  'mini vinyl figures',
+  'disney mini vinyl figures',
+]);
+
+function isNamedSetTag(tag) {
+  const t = (tag || '').toLowerCase().trim();
+  if (!t) return false;
+  if (t.startsWith('pop!')) return false;                 // product line, not a set
+  if (SET_GENERIC_LINES.has(t)) return false;             // generic line, not a themed set
+  if (SET_EXCLUDE_KW.some(k => t.includes(k))) return false;
+  return SET_SUFFIXES.some(suf => t.endsWith(suf) || t.endsWith(suf + 's'));
+}
+
+// Pick the most-specific named-set tag from a record's series array. Among the
+// set-qualifying tags, prefer the rarest in the catalog (a specific set like
+// "Haunted Mansion Mini Vinyl Figures" is rarer than a broad line like "Disney
+// Mini Vinyl Figures"), using the supplied frequency map as the tiebreak.
+function pickSetTag(series, tagFreq) {
+  const cands = (series || []).filter(isNamedSetTag);
+  if (cands.length === 0) return '';
+  return cands.reduce((best, s) =>
+    (tagFreq.get(s) || 0) < (tagFreq.get(best) || 0) ? s : best, cands[0]);
+}
+
+// PriceCharting consoles that are umbrella / genre lines, not properties. A figure
+// under one of these carries no property signal, so no franchise is suggested.
+// Seeded from a live run's console distribution; extend as new umbrella consoles
+// appear. Slugs are the part after "funko-pop-".
+const UMBRELLA_CONSOLES = new Set([
+  'animation', 'star-wars', 'disney', 'marvel', 'television', 'comics',
+  'movies', 'games', 'heroes', 'icons', 'rocks', 'ad-icons', 'retro-toys',
+  'asia', 'art-series', 'digital', 'vinyl-soda', 'soda', 'rides',
+]);
+
+// Title-case a console slug into a readable franchise suggestion.
+// "harry-potter" → "Harry Potter", "fantastic-beasts" → "Fantastic Beasts".
+// Known acronyms/brands are upper-cased rather than title-cased.
+const CONSOLE_ACRONYMS = {
+  wwe: 'WWE', mlb: 'MLB', nfl: 'NFL', nba: 'NBA', nhl: 'NHL', mls: 'MLS',
+  bape: 'BAPE', vhs: 'VHS', se: 'SE', dc: 'DC', tv: 'TV', ufc: 'UFC',
+};
+function consoleSlugToLabel(slug) {
+  return slug.split('-')
+    .map(w => CONSOLE_ACRONYMS[w] || (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ');
+}
+
+function franchiseSuggestionFromUrl(url) {
+  if (!url) return '';
+  const m = /\/game\/funko-pop-([a-z0-9-]+)\//.exec(url);
+  if (!m) return '';
+  const slug = m[1];
+  if (UMBRELLA_CONSOLES.has(slug)) return '';   // umbrella → no property signal
+  return consoleSlugToLabel(slug);
+}
+
+function deriveGroupingFields(enriched) {
+  console.log('\n── Post-process: Derive setTag + franchiseSuggestion ─────────');
+
+  // Build a catalog-wide series-tag frequency map for the setTag tiebreak.
+  const tagFreq = new Map();
+  for (const rec of enriched) {
+    for (const s of (rec.series || [])) {
+      tagFreq.set(s, (tagFreq.get(s) || 0) + 1);
+    }
+  }
+
+  let setCount = 0, frCount = 0;
+  for (const rec of enriched) {
+    const setTag = pickSetTag(rec.series, tagFreq);
+    if (setTag) { rec.setTag = setTag; setCount++; }
+
+    const fr = franchiseSuggestionFromUrl(rec.pricechartingUrl);
+    if (fr) { rec.franchiseSuggestion = fr; frCount++; }
+  }
+
+  console.log(`  setTag assigned:             ${setCount}`);
+  console.log(`  franchiseSuggestion assigned: ${frCount}`);
+  return enriched;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // POST-PROCESS 4 — Merge duplicate handles
 // ═══════════════════════════════════════════════════════════════════════════════
 //
@@ -1900,6 +2031,7 @@ const MERGE_FIELDS = [
   'marketValueIsApproximate',
   'pricechartingId', 'pricechartingUrl',
   'pcSeries', 'releaseDate', 'ebayEpid', 'amazonAsin', 'printRun', 'publisher', 'pcDescription',
+  'setTag', 'franchiseSuggestion',
 ];
 
 function mergeDuplicateHandles(enriched) {
@@ -2025,6 +2157,11 @@ async function main() {
 
   // 4. Extract Pop# from titles and clean dirty prices
   extractNumbersFromTitles(enriched);
+
+  // 5. Derive collection-grouping fields (setTag, franchiseSuggestion) LAST, over
+  //    the final clean record set, so the series-tag frequency map and console
+  //    reads reflect post-merge/post-removal data.
+  deriveGroupingFields(enriched);
 
   // Write output
   const outputPath = path.resolve(opts.output);

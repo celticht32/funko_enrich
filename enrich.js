@@ -78,6 +78,8 @@ function parseArgs() {
       case '--skip-pc':     opts.skipPc     = true; break;
       case '--pc-limit':    opts.pcLimit    = parseInt(args[++i], 10); break;
       case '--pc-crawl':    opts.pcCrawl    = true; break;
+      case '--pc-crawl-limit': opts.pcCrawlLimit = parseInt(args[++i], 10); break;
+      case '--pc-fill-upc': opts.pcFillUpc = true; break;
       case '--chrome-path': opts.chromePath = args[++i]; break;
       case '--pops-only':   opts.popsOnly   = true; break;
       case '--no-pop-filter': opts.popFilter = false; break;
@@ -617,22 +619,171 @@ async function passFunkoCom(enriched, titleIndex, handleIndex, opts) {
 
 const PC_BASE        = 'https://www.pricecharting.com';
 const PC_SEARCH_URL  = (q) => `${PC_BASE}/api/products?q=${encodeURIComponent(q)}&id=funko-pops`;
+const PC_HTML_SEARCH = (q) => `${PC_BASE}/search-products?q=${encodeURIComponent(q)}&type=prices`;
 const PC_DELAY       = 2500; // ms between PriceCharting requests — be polite
 
 /**
- * Search PriceCharting for a Funko title, return the best match product object.
- * The /api/products search endpoint returns JSON catalog data (no auth, no
- * price) and is reachable with a plain fetch. Returns null if not found.
- *   Response: { products: [ { id, product-name, console-name } ] }
+ * Reduce a catalog title to a core search query. PriceCharting's search wants
+ * the base character/name, not the decorated variant title. We strip
+ * parenthetical and bracketed qualifiers ("(Metallic)", "[Chase]"), drop a
+ * trailing "#NN", collapse whitespace, and append "funko" so the search scopes
+ * to Pops. Example:
+ *   "Twinkie The Kid (Glow In The Dark) (Logo Bandana)" → "Twinkie The Kid funko"
  */
-async function searchPriceCharting(title) {
+function pcSearchQuery(title) {
+  return (title || '')
+    .replace(/[\(\[][^\)\]]*[\)\]]/g, ' ')   // remove (...) and [...] qualifiers
+    .replace(/#\s*\d+/g, ' ')                // remove "#27"
+    .replace(/\s+/g, ' ')
+    .trim() + ' funko';
+}
+
+/**
+ * Pull the distinguishing variant tokens from a catalog title — the meaningful
+ * words inside its parentheses/brackets, lowercased. Stopwords (in, the, of, a,
+ * and, with, edition, etc.) are dropped so a qualifier like "(Glow In The Dark)"
+ * yields ["glow","dark"] and can't false-match a plain row via "in"/"the".
+ * "Twinkie the Kid (Metallic)" → ["metallic"].
+ */
+const VARIANT_STOPWORDS = new Set([
+  'in', 'the', 'of', 'a', 'an', 'and', 'with', 'edition', 'le', 'version',
+]);
+function variantTokens(title) {
+  const tokens = [];
+  const re = /[\(\[]([^\)\]]*)[\)\]]/g;
+  let m;
+  while ((m = re.exec(title || '')) !== null) {
+    m[1].split(/\s+/).forEach(w => {
+      const t = w.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+      if (t && !VARIANT_STOPWORDS.has(t)) tokens.push(t);
+    });
+  }
+  return tokens;
+}
+
+/**
+ * Score a PriceCharting listing row against the catalog record to choose the
+ * best variant. Rewards matching variant tokens and a matching funko number;
+ * penalises a row that carries a variant tag the record doesn't have (so the
+ * plain "Twinkie the Kid" record doesn't grab the "[Chase]" row). Higher = better.
+ */
+function scorePcRow(row, rec) {
+  const rowName = (row.name || '').toLowerCase();
+  const wantTokens = variantTokens(rec.title);
+  const rowTokens  = variantTokens(row.name);
+  let score = 0;
+  for (const t of wantTokens) if (rowName.includes(t)) score += 10;
+  // Penalise variant tags present on the row but not wanted (wrong variant).
+  for (const t of rowTokens) if (!wantTokens.includes(t)) score -= 4;
+  // Funko number match is a strong signal.
+  const recNum = (rec.funkoNumber || '').replace(/[^0-9]/g, '');
+  const rowNum = (row.name.match(/#(\d+)/) || [])[1] || '';
+  if (recNum && rowNum && recNum === rowNum) score += 8;
+  if (recNum && rowNum && recNum !== rowNum) score -= 3;
+  return score;
+}
+
+/**
+ * Decide whether a chosen row is a CONFIDENT match for the record, so we only
+ * attach a price we trust. PriceCharting and our catalog use different variant
+ * vocabularies (e.g. "Glow In The Dark" vs "Chase GITD"), so a wrong-variant
+ * price is a real risk — for a collection where chase/exclusive value differs
+ * sharply from the common figure, a confident-only policy is safer than broad
+ * coverage. Confident when:
+ *   - the record has NO variant qualifiers and the row carries none either
+ *     (clean base-figure match), OR
+ *   - at least one of the record's variant tokens appears in the row name
+ *     (positive variant hit).
+ * A record that wants a variant but matches no token — even on a number match —
+ * is treated as uncertain, because PriceCharting may name the variant
+ * differently and the price would attach to the wrong figure.
+ * Returns { ok, reason }.
+ */
+function pcMatchConfident(row, rec) {
+  const wantTokens = variantTokens(rec.title);
+  const rowTokens  = variantTokens(row.name);
+
+  if (wantTokens.length === 0) {
+    // Base figure wanted. The row must also be a base figure AND its name must
+    // actually cover the record's core name words — a base/base match on a
+    // shared common word ("Freddy" in both "Freddy Frostbear" and "Baseball
+    // Freddy") is NOT the same figure. Require all of the record's distinctive
+    // name words to appear in the row name.
+    if (rowTokens.length !== 0) {
+      return { ok: false, reason: 'record is base but row is a variant' };
+    }
+    if (!coreNameCovered(rec.title, row.name)) {
+      return { ok: false, reason: 'name mismatch (different figure)' };
+    }
+    return { ok: true, reason: 'base/base' };
+  }
+  // Record wants a variant.
+  const positiveHit = wantTokens.some(t => row.name.toLowerCase().includes(t));
+  // A variant match still needs the core name to line up, so a variant token
+  // can't rescue a wrong character.
+  if (positiveHit && coreNameCovered(rec.title, row.name)) {
+    return { ok: true, reason: 'variant token match' };
+  }
+  // The record wants a variant but no row token matched it (or the name doesn't
+  // line up). A bare number match is NOT enough — PriceCharting may label the
+  // variant differently (e.g. "Glow In The Dark" vs "Chase GITD"), and matching
+  // the plain figure by number would attach the wrong price. Treat as uncertain.
+  return { ok: false, reason: 'variant qualifiers did not match (naming mismatch)' };
+}
+
+/**
+ * Check that the record's distinctive core-name words all appear in the row
+ * name. Strips variant qualifiers, the "#NN" and "Funko POP <category>" tail,
+ * and generic stopwords, then requires every remaining record word to be present
+ * in the row name. Guards against same-number / shared-word false matches like
+ * "Freddy Frostbear" → "Baseball Freddy".
+ */
+const NAME_STOPWORDS = new Set([
+  'funko', 'pop', 'the', 'a', 'an', 'of', 'and', 'with', 'in', 'le', 'vinyl',
+]);
+function coreNameTokens(title) {
+  return (title || '')
+    .replace(/[\(\[][^\)\]]*[\)\]]/g, ' ')          // drop (…)/[…]
+    .replace(/#\s*\d+/g, ' ')                        // drop #NN
+    .replace(/funko\s+pop.*$/i, ' ')                 // drop "Funko POP <cat>" tail
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(w => w && !NAME_STOPWORDS.has(w));
+}
+function coreNameCovered(recTitle, rowName) {
+  const want = coreNameTokens(recTitle);
+  if (want.length === 0) return true;                // nothing to check
+  const rowLc = (rowName || '').toLowerCase();
+  return want.every(w => rowLc.includes(w));
+}
+
+
+/**
+ * Search PriceCharting for a record and return the best-matching listing row
+ * (with id, name, console, and inline prices). Uses the HTML search-products
+ * page through the shared Puppeteer `page` (the JSON /api/products endpoint is
+ * unreliable and the plain-fetch path gets blocked), parses the result rows with
+ * the same verified listing parser, and picks the best variant by score.
+ * Returns a row object or null.
+ */
+async function searchPriceCharting(page, rec) {
   try {
-    const res = await fetchWithRetry(PC_SEARCH_URL(title), {}, 2, 3000);
-    if (!res || !res.ok) return null;
-    const data = await res.json();
-    if (!data.products || data.products.length === 0) return null;
-    // Best match = first result (PriceCharting already ranks by relevance)
-    return data.products[0];
+    const url = PC_HTML_SEARCH(pcSearchQuery(rec.title));
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const html = await page.content();
+    let rows = parsePriceChartingListing(html);
+    // Reject non-Funko rows. PriceCharting search mixes in video games, cards,
+    // etc.; their console slug isn't a funko-pop-* set. Without this, a "FNAF
+    // Game" Funko can match a PlayStation 5 title of the same name.
+    rows = rows.filter(r => /^funko-pop-/.test(r.console || ''));
+    if (rows.length === 0) return null;
+    // Choose the highest-scoring row; ties keep search order (PC relevance).
+    let best = null, bestScore = -1e9;
+    rows.forEach((row, i) => {
+      const s = scorePcRow(row, rec) - i * 0.01;  // tiny tiebreak toward top
+      if (s > bestScore) { bestScore = s; best = row; }
+    });
+    return best;
   } catch (err) {
     return null;
   }
@@ -666,6 +817,26 @@ function parsePriceChartingHtml(html) {
 }
 
 /**
+ * Normalise a UPC cell to a single valid barcode. A PriceCharting product page
+ * sometimes lists multiple UPCs in one cell (e.g. a bundle), which a naive
+ * strip-all-non-digits would join into an invalid 24-digit string. We take the
+ * FIRST run of 12–13 digits (UPC-A is 12, EAN-13 is 13); a leading-zero 13 is
+ * kept as-is. Returns the barcode string, or null if no valid-length run found.
+ */
+function normalizeUpc(raw) {
+  if (!raw) return null;
+  // Split on any non-digit, keep groups that look like a barcode.
+  const groups = String(raw).split(/[^0-9]+/).filter(Boolean);
+  for (const g of groups) {
+    if (g.length === 12 || g.length === 13) return g;
+  }
+  // Fallback: if it's one long digit run, take the first 12.
+  const digits = String(raw).replace(/[^0-9]/g, '');
+  if (digits.length >= 12) return digits.slice(0, 12);
+  return null;
+}
+
+/**
  * Parse the clean metadata rows from a PriceCharting product page. The page's
  * attribute table lists "Label: => Value" rows (Series, Release Date, Box
  * Number, UPC, ePID, etc.). We read every such row, drop "none"/"n/a"/empty,
@@ -693,7 +864,7 @@ function parsePriceChartingMeta(html) {
   const boxNum = pick('Box Number');
 
   const meta = {};
-  const upc = pick('UPC');                    if (upc)         meta.upc          = upc.replace(/[^0-9]/g, '');
+  const upc = pick('UPC');                    if (upc)         meta.upc          = normalizeUpc(upc);
   if (boxNum)                                                  meta.funkoNumber  = boxNum.replace(/[^0-9]/g, '');
   const series = pick('Series');              if (series)      meta.pcSeries     = series;
   if (releaseDate)                                             meta.releaseDate  = releaseDate;
@@ -712,12 +883,19 @@ function parsePriceChartingMeta(html) {
  * the same approach the HobbyDB pass uses. `page` is an already-open Puppeteer
  * page. Returns { loose, complete, mint, url, meta } or null on failure.
  */
-async function scrapePriceChartingPrices(page, productId, consoleName) {
-  const consoleSlug = (consoleName || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, '-');
-  const url = `${PC_BASE}/game/${consoleSlug}/${productId}`;
+async function scrapePriceChartingPrices(page, productId, consoleName, directUrl) {
+  // PriceCharting product URLs use the name-slug, not the numeric id, so a
+  // caller that already has the correct href (e.g. from a listing row) should
+  // pass it as directUrl. Otherwise fall back to building from console+id, which
+  // only works when productId is itself the URL slug.
+  let url = directUrl;
+  if (!url) {
+    const consoleSlug = (consoleName || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-');
+    url = `${PC_BASE}/game/${consoleSlug}/${productId}`;
+  }
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     // The price table is server-rendered; a short settle is enough.
@@ -734,17 +912,29 @@ async function scrapePriceChartingPrices(page, productId, consoleName) {
 async function passPriceCharting(enriched, opts) {
   console.log('\n── Pass 3: PriceCharting market values ───────────────────────');
 
-  // Only look up records that don't already have market pricing (any grade).
+  // Candidate selection. By default: records with no market price yet.
+  // With --pc-fill-upc: ALSO revisit records that have a price but no UPC, so
+  // the metadata harvest can backfill the missing barcode (this is the path to
+  // completing UPC coverage — a priced-but-UPC-less record is otherwise never
+  // looked at again). Records that already have both a price and a UPC are
+  // always skipped.
+  const fillUpc = !!opts.pcFillUpc;
   const candidates = enriched
     .map((rec, i) => ({ rec, i }))
-    .filter(({ rec }) =>
-      !rec.marketValueLoose && !rec.marketValueComplete && !rec.marketValueNew)
+    .filter(({ rec }) => {
+      const hasPrice = !!(rec.marketValueLoose || rec.marketValueComplete || rec.marketValueNew);
+      const hasUpc   = !!(rec.upc && String(rec.upc).trim());
+      if (!hasPrice) return true;            // never priced → look up
+      if (fillUpc && !hasUpc) return true;   // priced but no UPC → revisit for UPC
+      return false;                          // already complete → skip
+    })
     .slice(0, opts.pcLimit);
 
-  console.log(`  Candidates (no market price yet): ${candidates.length} (limit: ${opts.pcLimit})`);
+  const mode = fillUpc ? 'no price, or priced-but-no-UPC' : 'no market price yet';
+  console.log(`  Candidates (${mode}): ${candidates.length} (limit: ${opts.pcLimit})`);
   console.log(`  Estimated time: ~${Math.ceil(candidates.length * PC_DELAY / 60000)} minutes`);
 
-  let found = 0, notFound = 0, errors = 0;
+  let found = 0, notFound = 0, errors = 0, uncertain = 0, upcFilled = 0;
 
   // PriceCharting product pages require a real browser (plain fetch is blocked),
   // so spin up the same stealth Puppeteer setup the HobbyDB pass uses.
@@ -781,19 +971,37 @@ async function passPriceCharting(enriched, opts) {
         await restartBrowser();
       }
 
-      // Step 1: catalog search (plain fetch is fine for the JSON search API).
-      const match = await searchPriceCharting(rec.title);
+      // Step 1: search via the HTML search page (browser) and pick best variant.
+      const match = await searchPriceCharting(page, rec);
       await sleep(PC_DELAY);
-      if (!match) {
+      if (!match || !match.id) {
         console.log('not found');
         notFound++;
         continue;
       }
 
-      // Step 2: price scrape via the browser.
-      const prices = await scrapePriceChartingPrices(page, match.id, match['console-name']);
+      // Confidence gate: only attach a price when we trust the variant match.
+      // A wrong-variant price (chase priced as common, or vice versa) is worse
+      // than no price, so low-confidence matches are logged and skipped.
+      const conf = pcMatchConfident(match, rec);
+      if (!conf.ok) {
+        console.log(`uncertain — skipped (${conf.reason}) → "${match.name}"`);
+        uncertain++;
+        continue;
+      }
+
+      // The search row already carries all three prices inline. Visit the
+      // product page only to harvest the richer metadata block (UPC, release
+      // date, ePID, etc.). If the page visit fails, we still keep the inline
+      // prices from the search row.
+      const detail = await scrapePriceChartingPrices(page, match.id, match.console, match.href);
       await sleep(PC_DELAY);
-      if (!prices || (!prices.loose && !prices.complete && !prices.mint)) {
+
+      // Prefer detail-page prices when present, else the inline search-row ones.
+      const loose    = (detail && detail.loose)    || match.loose    || null;
+      const complete = (detail && detail.complete) || match.complete || null;
+      const mint     = (detail && detail.mint)     || match.mint     || null;
+      if (!loose && !complete && !mint) {
         console.log(`found (id:${match.id}) — no price data`);
         notFound++;
         continue;
@@ -802,15 +1010,15 @@ async function passPriceCharting(enriched, opts) {
       // Step 3: merge into record. Complete (in-box) is the primary value.
       const updates = {
         pricechartingId:  String(match.id),
-        pricechartingUrl: prices.url,
+        pricechartingUrl: (detail && detail.url) || match.href,
       };
-      if (prices.loose)    updates.marketValueLoose    = prices.loose;
-      if (prices.complete) updates.marketValueComplete = prices.complete;
-      if (prices.mint)     updates.marketValueNew      = prices.mint;
+      if (loose)    updates.marketValueLoose    = loose;
+      if (complete) updates.marketValueComplete = complete;
+      if (mint)     updates.marketValueNew      = mint;
 
       // Harvest any metadata into fields the record is MISSING — never overwrite
       // existing values (HobbyDB/funko.com data is treated as authoritative).
-      const meta = prices.meta || {};
+      const meta = (detail && detail.meta) || {};
       let metaFilled = 0;
       for (const [k, v] of Object.entries(meta)) {
         if (v && (rec[k] === undefined || rec[k] === null || rec[k] === '')) {
@@ -821,15 +1029,17 @@ async function passPriceCharting(enriched, opts) {
 
       enriched[idx] = { ...enriched[idx], ...updates };
       found++;
+      if (updates.upc) upcFilled++;
       const metaTag = metaFilled ? ` +${metaFilled} meta` : '';
-      console.log(`✓ loose:$${prices.loose || '?'} complete:$${prices.complete || '?'} mint:$${prices.mint || '?'}${metaTag}`);
+      const upcTag  = updates.upc ? ` +UPC` : '';
+      console.log(`✓ loose:$${loose || '?'} complete:$${complete || '?'} mint:$${mint || '?'}${metaTag}${upcTag}`);
     }
   } finally {
     try { await browser.close(); } catch (_) {}
   }
 
-  console.log(`  Found: ${found} | Not found: ${notFound} | Errors: ${errors}`);
-  return { found, notFound, errors };
+  console.log(`  Found: ${found} | UPCs filled: ${upcFilled} | Uncertain (skipped): ${uncertain} | Not found: ${notFound} | Errors: ${errors}`);
+  return { found, notFound, errors, uncertain, upcFilled };
 }
 
 
@@ -848,21 +1058,57 @@ async function passPriceCharting(enriched, opts) {
  * adds any Pop whose PriceCharting id we don't already have as a new, already-
  * priced record. Pass 3 (run after) can still fill metadata from product pages.
  *
- * ONE thing still to confirm before a full run: PC_FUNKO_CONSOLES below is a
- * STARTER list of set slugs. Enumerate PriceCharting's complete Funko set list
- * from their Funko category index and expand this array for full coverage.
- * Unknown slugs simply 404 and are skipped, so a wrong slug is harmless.
+ * The set of Funko console slugs is discovered automatically at run time from
+ * PriceCharting's own category nav (discoverFunkoConsoles), so it stays current
+ * as PriceCharting adds categories. PC_FUNKO_CONSOLES below is only a fallback
+ * used if discovery fails. Unknown slugs 404 and are skipped harmlessly.
  *
  * OFF by default (requires --pc-crawl).
  */
 
-// Starter list — EXPAND after verifying against the Funko category index.
+// Fallback list, used only if live discovery fails. Mirrors the funko-pop-*
+// categories seen in PriceCharting's Funko nav as of this writing.
 const PC_FUNKO_CONSOLES = [
-  'funko-pop-animation', 'funko-pop-movies', 'funko-pop-television',
-  'funko-pop-games', 'funko-pop-marvel', 'funko-pop-star-wars',
-  'funko-pop-disney', 'funko-pop-heroes', 'funko-pop-rocks',
-  'funko-pop-sports', 'funko-pop-ad-icons', 'funko-pop-rides',
+  'funko-pop-8-bit', 'funko-pop-ad-icons', 'funko-pop-animation',
+  'funko-pop-basketball', 'funko-pop-bitty', 'funko-pop-classics',
+  'funko-pop-comics', 'funko-pop-deluxe-moment', 'funko-pop-die-cast',
+  'funko-pop-digital', 'funko-pop-disney', 'funko-pop-games',
+  'funko-pop-halo', 'funko-pop-heroes', 'funko-pop-hockey',
+  'funko-pop-holidays', 'funko-pop-icons', 'funko-pop-league-of-legends',
+  'funko-pop-marvel', 'funko-pop-mlb', 'funko-pop-movie-posters',
+  'funko-pop-movies', 'funko-pop-retro-toys', 'funko-pop-rides',
+  'funko-pop-rocks', 'funko-pop-soccer', 'funko-pop-star-wars',
+  'funko-pop-television', 'funko-pop-wwe',
 ];
+
+/**
+ * Discover the full set of Funko console slugs from PriceCharting's category
+ * nav. Loads a Funko page through the browser and extracts every distinct
+ * /console/funko-pop-* slug from its links (the nav lists all categories).
+ * Returns the discovered slug array, or the PC_FUNKO_CONSOLES fallback if the
+ * page yields nothing.
+ */
+async function discoverFunkoConsoles(page) {
+  try {
+    await page.goto(`${PC_BASE}/search-products?q=funko&type=prices`,
+      { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const html = await page.content();
+    const slugs = new Set();
+    const re = /\/console\/(funko-pop-[a-z0-9-]+)/g;
+    let m;
+    while ((m = re.exec(html)) !== null) slugs.add(m[1]);
+    const list = [...slugs];
+    if (list.length === 0) {
+      console.log('  [console discovery found nothing — using fallback list]');
+      return PC_FUNKO_CONSOLES;
+    }
+    console.log(`  Discovered ${list.length} Funko console sets to crawl`);
+    return list;
+  } catch (e) {
+    console.log('  [console discovery failed — using fallback list]');
+    return PC_FUNKO_CONSOLES;
+  }
+}
 
 /**
  * Parse a PriceCharting listing/search page into product rows. VERIFIED against
@@ -902,7 +1148,7 @@ async function passPriceChartingCrawl(enriched, opts) {
   if (!opts.pcCrawl) {
     console.log('  SKIPPED — pass disabled (enable with --pc-crawl once the');
     console.log('  console list and listing-row selector are verified; see code).');
-    return { discovered: 0, added: 0, pages: 0 };
+    return { discovered: 0, added: 0, pages: 0, withUpc: 0 };
   }
 
   // Index of PriceCharting ids we already have, to dedupe discoveries.
@@ -920,9 +1166,16 @@ async function passPriceChartingCrawl(enriched, opts) {
   await page.setViewport({ width: 1280, height: 900 });
   await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
 
-  let discovered = 0, added = 0, pages = 0;
+  let discovered = 0, added = 0, pages = 0, withUpc = 0;
+  const crawlLimit = opts.pcCrawlLimit || Infinity;
+
+  // Discover the full Funko console set list from PriceCharting's nav, so the
+  // crawl covers every category rather than a hardcoded subset.
+  const consoles = await discoverFunkoConsoles(page);
+
   try {
-    for (const slug of PC_FUNKO_CONSOLES) {
+    outer:
+    for (const slug of consoles) {
       let url = `${PC_BASE}/console/${slug}`;
       let guard = 0;
       while (url && guard < 50) {          // hard page cap per set
@@ -945,9 +1198,14 @@ async function passPriceChartingCrawl(enriched, opts) {
           if (!s.id || havePcId.has(String(s.id))) continue;
           discovered++;
           havePcId.add(String(s.id));
-          // Listing rows carry all three prices inline, so a discovered Pop
-          // arrives already-priced. Pass 3 (run after) can still fill metadata
-          // (UPC, number, release date) from its product page.
+          // Live progress: this loop visits one product page per new Pop (~2.5s
+          // each), so without this the console looks frozen for minutes.
+          process.stdout.write(`\r    +${added + 1} new | ${withUpc} w/UPC | ${(s.name || '').slice(0, 40).padEnd(40)}`);
+          // Listing rows carry all three prices inline. To make the new Pop
+          // SCANNABLE we also visit its product page to harvest the UPC and the
+          // rest of the metadata (release date, ePID, etc.) — the listing row
+          // alone has no UPC. This is the slow part of the crawl: one extra page
+          // fetch per newly-discovered Pop.
           const rec = {
             handle: `pc-${s.id}`,
             title: s.name,
@@ -958,9 +1216,36 @@ async function passPriceChartingCrawl(enriched, opts) {
           if (s.loose)    rec.marketValueLoose    = s.loose;
           if (s.complete) rec.marketValueComplete = s.complete;
           if (s.mint)     rec.marketValueNew      = s.mint;
+
+          // Product-page visit for UPC + metadata. Reuses the same scraper Pass 3
+          // uses. On failure we still keep the priced listing-row record (just
+          // without a UPC), so a transient page error never loses the discovery.
+          try {
+            const detail = await scrapePriceChartingPrices(page, s.id, s.console, s.href);
+            if (detail && detail.meta) {
+              for (const [k, v] of Object.entries(detail.meta)) {
+                if (v && (rec[k] === undefined || rec[k] === null || rec[k] === '')) {
+                  rec[k] = v;
+                }
+              }
+            }
+            // Prefer product-page prices if the listing row lacked any.
+            if (detail) {
+              if (!rec.marketValueLoose    && detail.loose)    rec.marketValueLoose    = detail.loose;
+              if (!rec.marketValueComplete && detail.complete) rec.marketValueComplete = detail.complete;
+              if (!rec.marketValueNew      && detail.mint)     rec.marketValueNew      = detail.mint;
+            }
+            await sleep(PC_DELAY);
+          } catch (e) {
+            // keep the listing-row record as-is
+          }
+
           enriched.push(rec);
           added++;
+          if (rec.upc) withUpc++;
+          if (added >= crawlLimit) { process.stdout.write('\n'); console.log('  [crawl limit reached]'); break outer; }
         }
+        process.stdout.write('\n');   // finish the live progress line for this page
         await sleep(PC_DELAY);
       }
     }
@@ -968,8 +1253,8 @@ async function passPriceChartingCrawl(enriched, opts) {
     try { await browser.close(); } catch (_) {}
   }
 
-  console.log(`  Pages crawled: ${pages} | New Pops discovered: ${added}`);
-  return { discovered, added, pages };
+  console.log(`  Pages crawled: ${pages} | New Pops discovered: ${added} | With UPC (scannable): ${withUpc}`);
+  return { discovered, added, pages, withUpc };
 }
 
 
@@ -1650,7 +1935,7 @@ async function main() {
     kenny:        { newCount: 0, enrichedCount: 0 },
     funko:        { totalScraped: 0, newCount: 0, enrichedCount: 0 },
     pricecharting:{ found: 0, notFound: 0, errors: 0 },
-    pricechartingCrawl:{ discovered: 0, added: 0, pages: 0 },
+    pricechartingCrawl:{ discovered: 0, added: 0, pages: 0, withUpc: 0 },
     hobbydb:      { found: 0, notFound: 0, errors: 0 },
     funkoDetail:  { enriched: 0, notFound: 0, errors: 0 },
   };

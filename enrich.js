@@ -8,7 +8,8 @@
  *   Pass 2 — funko.com scrape
  *             Adds: price, available, productUrl, funkoPrimaryImage, pid
  *   Pass 3 — PriceCharting.com scrape
- *             Adds: marketValueLoose, marketValueNew, pricechartingId, pricechartingUrl
+ *             Adds: marketValueLoose, marketValueComplete, marketValueNew,
+ *                   pricechartingId, pricechartingUrl
  *             Only runs on records still missing market pricing after Pass 2.
  *
  * Usage:
@@ -245,8 +246,9 @@ function mergeRecord(existing, scraped) {
   if (scraped.popType           && !merged.popType)        merged.popType          = scraped.popType;
 
   // PriceCharting fields
-  if (scraped.marketValueLoose  && !merged.marketValueLoose)  merged.marketValueLoose  = scraped.marketValueLoose;
-  if (scraped.marketValueNew    && !merged.marketValueNew)    merged.marketValueNew    = scraped.marketValueNew;
+  if (scraped.marketValueLoose    && !merged.marketValueLoose)    merged.marketValueLoose    = scraped.marketValueLoose;
+  if (scraped.marketValueComplete && !merged.marketValueComplete) merged.marketValueComplete = scraped.marketValueComplete;
+  if (scraped.marketValueNew      && !merged.marketValueNew)      merged.marketValueNew      = scraped.marketValueNew;
   if (scraped.pricechartingId   && !merged.pricechartingId)   merged.pricechartingId   = scraped.pricechartingId;
   if (scraped.pricechartingUrl  && !merged.pricechartingUrl)  merged.pricechartingUrl  = scraped.pricechartingUrl;
 
@@ -618,7 +620,9 @@ const PC_DELAY       = 2500; // ms between PriceCharting requests — be polite
 
 /**
  * Search PriceCharting for a Funko title, return the best match product object.
- * Returns null if not found or on error.
+ * The /api/products search endpoint returns JSON catalog data (no auth, no
+ * price) and is reachable with a plain fetch. Returns null if not found.
+ *   Response: { products: [ { id, product-name, console-name } ] }
  */
 async function searchPriceCharting(title) {
   try {
@@ -634,50 +638,52 @@ async function searchPriceCharting(title) {
 }
 
 /**
- * Scrape a PriceCharting product page for loose and new prices.
- * Returns { loose, new } in dollars, or null on failure.
- *
- * PriceCharting renders prices in elements with id="used-price" (loose)
- * and id="new-price". Values are in cents as data attributes.
+ * Parse the three headline prices out of a PriceCharting product page's HTML.
+ * Verified against a real saved page (Pepe Le Pew #395):
+ *   #used_price     → Loose / out-of-box value   (e.g. $26.00)
+ *   #complete_price → Complete / in-box value     (e.g. $42.00)
+ *   #new_price      → New / mint value            (e.g. $49.45)
+ * Each id is a container whose dollar amount lives in a nested .js-price span
+ * as TEXT (not a data-price attribute, not cents). We read the first $ value
+ * inside each container. Returns dollar strings (e.g. "42.00") or null each.
  */
-async function scrapePriceChartingPrices(productId, consoleName) {
-  // Build the slug-based URL from console name
-  // consoleName is like "Funko Pop Animation" → "funko-pop-animation"
+function parsePriceChartingHtml(html) {
+  const $ = cheerio.load(html);
+  const readPrice = (id) => {
+    const txt = $('#' + id).text();
+    const m = txt.match(/\$\s*([\d,]+\.\d{2})/);
+    if (!m) return null;
+    const val = parseFloat(m[1].replace(/,/g, ''));
+    return (val > 0 && val <= 100000) ? val.toFixed(2) : null;
+  };
+  return {
+    loose:    readPrice('used_price'),
+    complete: readPrice('complete_price'),
+    mint:     readPrice('new_price'),
+    url:      $('link[rel="canonical"]').attr('href') || null,
+  };
+}
+
+/**
+ * Fetch a PriceCharting product page through the shared Puppeteer page (real
+ * browser + stealth) and parse all three grades. PriceCharting blocks plain
+ * fetches of product pages, so the price scrape must go through the browser —
+ * the same approach the HobbyDB pass uses. `page` is an already-open Puppeteer
+ * page. Returns { loose, complete, mint, url } or null on failure.
+ */
+async function scrapePriceChartingPrices(page, productId, consoleName) {
   const consoleSlug = (consoleName || '')
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, '-');
-
   const url = `${PC_BASE}/game/${consoleSlug}/${productId}`;
-
   try {
-    const res = await fetchWithRetry(url, {}, 2, 3000);
-    if (!res || !res.ok) return null;
-
-    const html = await res.text();
-    const $    = cheerio.load(html);
-
-    // PriceCharting renders prices in span.price elements with data-price attribute
-    // or as text in elements with specific IDs
-    const loosePriceCents = parseInt(
-      $('#used-price').attr('data-price') ||
-      $('[id="used-price"]').first().text().replace(/[^0-9]/g, '') ||
-      '0', 10
-    );
-    const newPriceCents = parseInt(
-      $('#new-price').attr('data-price') ||
-      $('[id="new-price"]').first().text().replace(/[^0-9]/g, '') ||
-      '0', 10
-    );
-
-    // Also grab the canonical page URL for reference
-    const canonicalUrl = $('link[rel="canonical"]').attr('href') || url;
-
-    return {
-      loose: loosePriceCents > 0 ? (loosePriceCents / 100).toFixed(2) : null,
-      new:   newPriceCents   > 0 ? (newPriceCents   / 100).toFixed(2) : null,
-      url:   canonicalUrl,
-    };
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // The price table is server-rendered; a short settle is enough.
+    const html = await page.content();
+    const prices = parsePriceChartingHtml(html);
+    if (!prices.url) prices.url = url;
+    return prices;
   } catch (err) {
     return null;
   }
@@ -686,10 +692,11 @@ async function scrapePriceChartingPrices(productId, consoleName) {
 async function passPriceCharting(enriched, opts) {
   console.log('\n── Pass 3: PriceCharting market values ───────────────────────');
 
-  // Only look up records that don't already have market pricing
+  // Only look up records that don't already have market pricing (any grade).
   const candidates = enriched
     .map((rec, i) => ({ rec, i }))
-    .filter(({ rec }) => !rec.marketValueLoose && !rec.marketValueNew)
+    .filter(({ rec }) =>
+      !rec.marketValueLoose && !rec.marketValueComplete && !rec.marketValueNew)
     .slice(0, opts.pcLimit);
 
   console.log(`  Candidates (no market price yet): ${candidates.length} (limit: ${opts.pcLimit})`);
@@ -697,41 +704,74 @@ async function passPriceCharting(enriched, opts) {
 
   let found = 0, notFound = 0, errors = 0;
 
-  for (let i = 0; i < candidates.length; i++) {
-    const { rec, i: idx } = candidates[i];
-    process.stdout.write(`  [${i + 1}/${candidates.length}] ${rec.title.slice(0, 50).padEnd(50)} `);
+  // PriceCharting product pages require a real browser (plain fetch is blocked),
+  // so spin up the same stealth Puppeteer setup the HobbyDB pass uses.
+  const chromePath = findChrome(opts.chromePath);
+  let browser = await puppeteer.launch({
+    executablePath: chromePath,
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled', '--window-size=1280,900'],
+  });
+  let page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 900 });
+  await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
 
-    // Step 1: search for the product
-    const match = await searchPriceCharting(rec.title);
-    await sleep(PC_DELAY);
+  const BROWSER_RESTART_INTERVAL = 200;
+  async function restartBrowser() {
+    try { await browser.close(); } catch (_) {}
+    browser = await puppeteer.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled', '--window-size=1280,900'],
+    });
+    page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 900 });
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
+    console.log('  [browser restarted]');
+  }
 
-    if (!match) {
-      console.log('not found');
-      notFound++;
-      continue;
+  try {
+    for (let i = 0; i < candidates.length; i++) {
+      const { rec, i: idx } = candidates[i];
+      process.stdout.write(`  [${i + 1}/${candidates.length}] ${rec.title.slice(0, 50).padEnd(50)} `);
+
+      if (i > 0 && i % BROWSER_RESTART_INTERVAL === 0) {
+        await restartBrowser();
+      }
+
+      // Step 1: catalog search (plain fetch is fine for the JSON search API).
+      const match = await searchPriceCharting(rec.title);
+      await sleep(PC_DELAY);
+      if (!match) {
+        console.log('not found');
+        notFound++;
+        continue;
+      }
+
+      // Step 2: price scrape via the browser.
+      const prices = await scrapePriceChartingPrices(page, match.id, match['console-name']);
+      await sleep(PC_DELAY);
+      if (!prices || (!prices.loose && !prices.complete && !prices.mint)) {
+        console.log(`found (id:${match.id}) — no price data`);
+        notFound++;
+        continue;
+      }
+
+      // Step 3: merge into record. Complete (in-box) is the primary value.
+      const updates = {
+        pricechartingId:  String(match.id),
+        pricechartingUrl: prices.url,
+      };
+      if (prices.loose)    updates.marketValueLoose    = prices.loose;
+      if (prices.complete) updates.marketValueComplete = prices.complete;
+      if (prices.mint)     updates.marketValueNew      = prices.mint;
+
+      enriched[idx] = { ...enriched[idx], ...updates };
+      found++;
+      console.log(`✓ loose:$${prices.loose || '?'} complete:$${prices.complete || '?'} mint:$${prices.mint || '?'}`);
     }
-
-    // Step 2: get prices from the product page
-    const prices = await scrapePriceChartingPrices(match.id, match['console-name']);
-    await sleep(PC_DELAY);
-
-    if (!prices || (!prices.loose && !prices.new)) {
-      console.log(`found (id:${match.id}) — no price data`);
-      notFound++;
-      continue;
-    }
-
-    // Step 3: merge into record
-    const updates = {
-      pricechartingId:  String(match.id),
-      pricechartingUrl: prices.url,
-    };
-    if (prices.loose) updates.marketValueLoose = prices.loose;
-    if (prices.new)   updates.marketValueNew   = prices.new;
-
-    enriched[idx] = { ...enriched[idx], ...updates };
-    found++;
-    console.log(`✓ loose:$${prices.loose || '?'} new:$${prices.new || '?'}`);
+  } finally {
+    try { await browser.close(); } catch (_) {}
   }
 
   console.log(`  Found: ${found} | Not found: ${notFound} | Errors: ${errors}`);
@@ -1349,7 +1389,7 @@ const MERGE_FIELDS = [
   'hdbid', 'upc', 'funkoNumber', 'funkoNumberFromTitle', 'funkoSource',
   'price', 'available', 'productUrl', 'funkoPrimaryImage', 'popType',
   'hotTopicSku', 'gamestopSku', 'targetSku', 'walmartSku', 'amazonSku',
-  'franchise', 'funkoSection', 'pid', 'marketValueLoose', 'marketValueNew',
+  'franchise', 'funkoSection', 'pid', 'marketValueLoose', 'marketValueComplete', 'marketValueNew',
   'pricechartingId', 'pricechartingUrl',
 ];
 

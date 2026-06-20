@@ -29,6 +29,9 @@ node enrich.js [options]
 | `--skip-funko` | off | Skip Pass 2 |
 | `--skip-pc` | off | Skip Pass 3 |
 | `--pc-limit` | `500` | Max items to look up on PriceCharting (Pass 3) |
+| `--pc-crawl` | off | Enable Pass 3b: crawl PriceCharting to discover missing Pops |
+| `--pc-crawl-limit` | none | Cap new Pops discovered by the crawl (for test runs) |
+| `--pc-fill-upc` | off | Also revisit already-priced records that lack a UPC, to backfill it |
 | `--skip-hdb` | off | Skip Pass 4 |
 | `--hdb-limit` | `200` | Max HobbyDB lookups per run (Pass 4) |
 | `--hdb-delay` | `1500` | Milliseconds between HobbyDB requests (Pass 4) |
@@ -79,13 +82,59 @@ price records enriched by the earlier passes).
 - Note: vaulted/retired items won't appear here - that's expected
 
 ### Pass 3 - PriceCharting Market Values
-- Source: pricecharting.com (eBay sold listing aggregator, free, no API key)
-- Only runs on records that don't already have market pricing
-- Two sub-requests per item: catalog search + product page scrape
-- Uses 2.5s delay between requests to stay polite
-- Fields added: `marketValueLoose`, `marketValueNew`, `pricechartingId`, `pricechartingUrl`
-- Use `--pc-limit` to cap how many items to look up (full run can take hours)
-- Runs **last**, after Passes 1, 2, 4, and 5, so it can price newly-added/enriched records
+- Source: pricecharting.com (eBay sold-listing aggregator, free data, no API key)
+- Only runs on records that don't already have any market price
+- **Search:** uses PriceCharting's HTML search page through Puppeteer (the JSON
+  `/api/products` endpoint is unreliable / blocked). The query is the record's
+  *core* name with variant qualifiers and `#NN` stripped, plus "funko" — e.g.
+  "Twinkie The Kid (Glow In The Dark)" searches as "Twinkie The Kid funko".
+  Searching the full decorated title was the old cause of false "not found".
+- **Variant matching:** the search returns all variants of a figure; the best
+  row is chosen by score (variant-token overlap + funko-number match, penalising
+  unwanted variant tags). A **confidence gate** then decides whether to trust it:
+  - record has no variant qualifiers + row is also base → priced
+  - record's variant token (e.g. "metallic", "chase") appears in the row → priced
+  - record wants a variant but no token matched (e.g. catalog "Glow In The Dark"
+    vs PriceCharting "Chase GITD") → **skipped and logged as uncertain**, rather
+    than risk attaching the wrong variant's price. Stopwords (in/the/of/…) are
+    ignored so they can't cause a false match.
+  Summary line reports Found / Uncertain (skipped) / Not found / Errors.
+- Captures **all three grades** inline from the search row: `marketValueLoose`
+  (out of box), `marketValueComplete` (in box — primary), `marketValueNew`
+  (mint). The product page is then visited to harvest metadata.
+- **Also harvests metadata** into fields the record is MISSING (never overwrites):
+  `upc`, `funkoNumber`, `pcSeries`, `releaseDate`, `ebayEpid`, `amazonAsin`,
+  `printRun`, `publisher`, `pcDescription`.
+- Through Puppeteer + stealth, browser restart every 200 records, 2.5s delay.
+- Use `--pc-limit` to cap how many items to look up. Runs after Passes 1/2/4/5.
+- **Completing UPC coverage:** by default Pass 3 skips any record that already
+  has a price. With `--pc-fill-upc` it ALSO revisits priced records that have no
+  UPC, so the product-page metadata harvest can backfill the barcode. This is the
+  way to fill UPCs on records that were priced before the metadata harvest worked.
+  A record is only skipped once it has both a price and a UPC. (The confidence
+  gate still applies — an uncertain variant match attaches neither price nor UPC,
+  since a wrong UPC would make the app's barcode scan resolve the wrong figure.)
+
+### Pass 3b - PriceCharting Catalog Crawl (find missing Pops)
+- **OFF by default** — enable with `--pc-crawl`.
+- Walks PriceCharting's Funko "console" set listing pages and adds any Pop whose
+  PriceCharting id we don't already have as a new record. Listing rows carry all
+  three prices inline, so discovered Pops arrive already priced.
+- **Visits each new Pop's product page to harvest the UPC** (and release date,
+  ePID, etc.) — the listing row has no UPC, and the UPC is what makes a record
+  scannable in the app. This is the slow part: one extra page fetch per new Pop,
+  so a full crawl is hours, not minutes. On a product-page failure the priced
+  listing-row record is still kept (just without a UPC).
+- Use `--pc-crawl-limit N` to cap discoveries for a test run (e.g. stop after 20
+  new Pops). Summary reports `New Pops discovered` and `With UPC (scannable)`.
+- New records get `handle: pc-{id}`, `funkoSource: 'pricecharting'`, the PC
+  id/url, inline prices, and (when the product page has it) UPC + metadata.
+- **Console sets are discovered automatically** at run time from PriceCharting's
+  Funko category nav, so the crawl covers every funko-pop-* set and picks up new
+  categories PriceCharting adds. A hardcoded fallback list is used only if that
+  discovery fails.
+- Not every PriceCharting product page has a UPC filled in, so UPC coverage will
+  be "most," not "all."
 
 ### Pass 4 - HobbyDB Reference Numbers
 - Source: hobbydb.com catalog item pages (Puppeteer, reuses Pass 2's browser session)
@@ -140,7 +189,8 @@ price records enriched by the earlier passes).
 | `funkoPrimaryImage` | 2 | Funko CDN image URL |
 | `funkoSource` | 2 | `"funko.com"` (audit trail) |
 | `marketValueLoose` | 3 | Secondary market value, out of box |
-| `marketValueNew` | 3 | Secondary market value, sealed in box |
+| `marketValueComplete` | 3 | Secondary market value, in box (primary) |
+| `marketValueNew` | 3 | Secondary market value, mint/sealed |
 | `pricechartingId` | 3 | PriceCharting product ID |
 | `pricechartingUrl` | 3 | Direct PriceCharting page URL |
 | `hdbid` | 4 | HobbyDB's own numeric catalog item ID |

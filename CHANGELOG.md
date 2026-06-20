@@ -4,6 +4,23 @@ Notable changes to the enricher pipeline. Most recent first.
 
 ---
 
+## Series-completion grouping fields — 2026-06-20
+
+### Added
+
+- **POST-PROCESS 5 — `setTag` + `franchiseSuggestion`.** New final post-process
+  emitting two grouping fields the FunkoDex app consumes for series completion.
+  `setTag` is the most-specific named set from the `series` array (specific set
+  suffix, excluding Pop! lines / exclusives / generic broad lines; lowest-frequency
+  tiebreak). `franchiseSuggestion` is a property-level franchise, preferring the
+  cleaned PriceCharting `pcSeries` row (retailer/event suffixes stripped) and
+  falling back to a property-specific console slug (umbrella consoles excluded).
+  Both fields are also added to `MERGE_FIELDS` so they survive duplicate-handle
+  merge. Validated on the live 12,176-record output: 13 clean set tags
+  (Haunted Mansion 19/19); franchise coverage 57 → 630 with Hocus Pocus resolving.
+
+---
+
 ## PriceCharting integration + matching safety — 2026-06-20
 
 ### Added

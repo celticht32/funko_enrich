@@ -39,7 +39,17 @@ independently skippable so a run can target just the work that's needed.
 
 Post-processing always runs (not gated by `--skip-*`): merge duplicate handles,
 dedup funko.com vs HobbyDB, remove non-Pop HobbyDB records, extract Pop# from
-titles.
+titles, and **POST-PROCESS 5 — derive grouping fields** (`deriveGroupingFields`).
+POST-PROCESS 5 emits two fields the FunkoDex series-completion feature consumes,
+computed from data already on each record (no network):
+- `setTag` — most-specific named set from the `series` array (specific set suffix;
+  excludes Pop! lines, retailer/convention exclusives, and generic broad lines;
+  lowest-frequency tiebreak).
+- `franchiseSuggestion` — property-level franchise, preferring the cleaned
+  PriceCharting `pcSeries` row (retailer/event suffixes stripped), else a
+  property-specific console slug (umbrella consoles excluded).
+Both are suggestions; the app's user-assigned franchise is authoritative. Added to
+`MERGE_FIELDS` so they survive duplicate-handle merge.
 
 ---
 

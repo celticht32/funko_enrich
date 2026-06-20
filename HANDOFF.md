@@ -13,6 +13,33 @@ from the app. See `CLAUDE.md` for the full pipeline description and `README.md`
 
 ## Current state
 
+**Latest (2026-06-20, with FunkoDex Session 15): grouping fields added.**
+POST-PROCESS 5 (`deriveGroupingFields`) now emits two fields the app's
+series-completion feature consumes:
+- `setTag` — the most-specific named set a figure belongs to (e.g. "Haunted
+  Mansion Mini Vinyl Figures"), from the `series` array. Rule: a tag ending in a
+  specific set suffix (Mini Vinyl Figures / Advent Calendar / Mystery Box / Vinyl
+  Sets / …), excluding Pop! lines, retailer/convention exclusives, and the generic
+  broad lines (Disney/Funko Mini Vinyl Figures, Advent Calendar). Lowest-frequency
+  tiebreak. Verified: 13 clean sets, Haunted Mansion 19/19.
+- `franchiseSuggestion` — a property-level franchise. Prefers the cleaned
+  PriceCharting `pcSeries` (split on `.`/`,`, drop retailer/event noise →
+  "Dragon Ball Z", "Hocus Pocus", "Garfield"), falling back to a property-specific
+  console slug. Umbrella consoles (disney/animation/movies/marvel/…) yield nothing.
+  Verified: coverage 57 (console-only) → 630 (pcSeries-first); Hocus Pocus resolves.
+
+Both are SUGGESTIONS — the app's user-assigned franchise always wins; setTag drives
+the secondary named-set completion. Computed from data already on the record, no
+extra network. Runs as the final post-process before write, so it sees the full
+crawled/merged set.
+
+**Run note:** default `--input` is `funko_data.json` (the 23,940 base). For a clean
+rebuild that loads the base, omit `--input` (current S15 rebuild does this). For an
+incremental EXTEND that preserves prior enrichment, pass
+`--input funko_data_enriched.json`. Always back up `funko_data_enriched.json`
+before a run that writes to it.
+
+
 The PriceCharting integration is complete and validated against a full production
 crawl run:
 

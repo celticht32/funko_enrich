@@ -471,7 +471,12 @@ async function passFunkoCom(enriched, titleIndex, handleIndex, opts) {
   await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
 
   let pageNum = 1, totalScraped = 0, newCount = 0, enrichedCount = 0, consecutiveEmpty = 0, pageDropped = 0;
-  let catalogTotal = -1; // detected from first page, -1 = unknown
+  let catalogTotal = -1; // detected from the listing page, -1 = unknown
+  let start = 0;         // running product offset — advanced by ACTUAL products
+                         // returned per page, not by a fixed page size. funko.com's
+                         // SFCC ignores large sz values and serves ~10/page, so a
+                         // fixed-stride offset races past the real catalog and the
+                         // loop never terminates. Tracking the real count fixes that.
 
   try {
     while (true) {
@@ -480,14 +485,24 @@ async function passFunkoCom(enriched, titleIndex, handleIndex, opts) {
         break;
       }
 
-      const pageSize = 48;
-      const start    = (pageNum - 1) * pageSize;
+      const pageSize = 48; // requested; funko.com may serve fewer (we track actual)
 
-      // Stop if we know the total and have already fetched it all
+      // Hard stop: once the catalog total is known, stop as soon as the running
+      // offset reaches it. This is the primary terminator now that `start`
+      // advances by real product counts.
       if (catalogTotal > 0 && start >= catalogTotal) {
-        console.log(`  Reached catalog end (${catalogTotal} items). Stopping.`);
+        console.log(`  Reached catalog end (${catalogTotal} items, offset ${start}). Stopping.`);
         break;
       }
+
+      // Absolute backstop: even if the total is never detected, never page past a
+      // sane ceiling. The full funko.com all-products catalog is only a few
+      // thousand items; 500 pages at any realistic page size is far beyond it.
+      if (pageNum > 500) {
+        console.log(`  Hit hard page ceiling (500). Stopping — catalog total ${catalogTotal > 0 ? catalogTotal : 'undetected'}.`);
+        break;
+      }
+
       const url = opts.popsOnly
         ? `${FUNKO_BASE}/fandoms/?prefn1=productType&prefv1=Pop%21&sz=${pageSize}&start=${start}`
         : `${FUNKO_BASE}/all-funko-products/?sz=${pageSize}&start=${start}`;
@@ -503,12 +518,24 @@ async function passFunkoCom(enriched, titleIndex, handleIndex, opts) {
           { timeout: 15000 }
         ).catch(() => {}); // don't throw if not found — parseTiles handles it
 
+        // Until the total is known, wait briefly for the JS-injected result count
+        // so catalogTotal is detected and the end-of-catalog stop can fire.
+        if (catalogTotal < 0) {
+          await page.waitForFunction(
+            () => /(?:of\s+[\d,]+\s+Items|\([\d,]+\)\s+Results)/i.test(document.body.innerText),
+            { timeout: 8000 }
+          ).catch(() => {});
+        }
+
         const html     = await page.content();
 
         // Extract total item count from SFCC page on first page only
         // SFCC renders it as e.g. "1-20 of 2,925 Items" in a .results-hits or similar element
         if (catalogTotal < 0) {
-          const totalMatch = html.match(/(\d[\d,]*)\s+Items?/i);
+          const totalMatch =
+            html.match(/of\s+([\d,]+)\s+Items?/i) ||
+            html.match(/\(([\d,]+)\)\s+Results?/i) ||
+            html.match(/([\d,]{2,})\s+Items?/i);
           if (totalMatch) {
             catalogTotal = parseInt(totalMatch[1].replace(/,/g, ''), 10);
             console.log(`  Catalog total: ${catalogTotal.toLocaleString()} items`);
@@ -534,6 +561,7 @@ async function passFunkoCom(enriched, titleIndex, handleIndex, opts) {
         } else {
           consecutiveEmpty = 0;
           totalScraped += products.length;
+          start        += products.length; // advance offset by REAL count served
 
           // Apply standard-Pop filter (drops bags, keychains, pins, Bitty/Pocket, etc.)
           let pageKept = products;

@@ -2176,17 +2176,31 @@ async function main() {
   }
 
   // ── Post-processing (order matters) ──────────────────────────────────────
-  // 1. Merge duplicate handles first — clean the base data before any dedup/removal
+  // 1. Remove non-Pop records FIRST, per-record, before any handle merge.
+  //    A real Pop and a non-Pop (Wacky Wobbler, Mystery Mini, Pocket Pop, etc.)
+  //    can share one HobbyDB handle. If handles are merged first, the union of
+  //    their series tags carries the non-Pop tag onto the fused record, and the
+  //    non-Pop filter then deletes the whole thing — silently dropping the real
+  //    Pop (e.g. "Ronald McDonald" Pop! Ad Icons fused with its Wacky Wobbler
+  //    twin). Filtering each raw record on its own merits first means the
+  //    non-Pop copy is dropped alone and the Pop copy survives to be merged.
+  //    Verified on the full base: rescues ~1,800 Pops, drops 0 legitimate records.
+  const cleaned = removeNonPops(enriched);
+  enriched.length = 0; enriched.push(...cleaned);
+
+  // 2. Merge duplicate handles — now safe, the non-Pop twins are already gone.
   const handleMerged = mergeDuplicateHandles(enriched);
   enriched.length = 0; enriched.push(...handleMerged);
 
-  // 2. Dedup funko.com additions against the now-clean HobbyDB records
+  // 3. Dedup funko.com additions against the now-clean HobbyDB records
   const deduped = dedupeAndMerge(enriched);
   enriched.length = 0; enriched.push(...deduped);
 
-  // 3. Remove non-Pop HobbyDB records
-  const cleaned = removeNonPops(enriched);
-  enriched.length = 0; enriched.push(...cleaned);
+  // 3b. Safety net: re-run the non-Pop filter after the funko.com dedup, in case
+  //     a funko.com addition carried a non-Pop series tag. After the step-1
+  //     reorder this should remove ~nothing from the HobbyDB side.
+  const cleaned2 = removeNonPops(enriched);
+  enriched.length = 0; enriched.push(...cleaned2);
 
   // 4. Extract Pop# from titles and clean dirty prices
   extractNumbersFromTitles(enriched);

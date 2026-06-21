@@ -37,9 +37,14 @@ independently skippable so a run can target just the work that's needed.
 - **Pass 5 — funko.com detail pages** (`passFunkoDetails`): franchise/series
   enrichment from funko.com product pages.
 
-Post-processing always runs (not gated by `--skip-*`): merge duplicate handles,
-dedup funko.com vs HobbyDB, remove non-Pop HobbyDB records, extract Pop# from
-titles, and **POST-PROCESS 5 — derive grouping fields** (`deriveGroupingFields`).
+Post-processing always runs (not gated by `--skip-*`), and ORDER MATTERS:
+remove non-Pop records FIRST (per-record, before any handle merge), then merge
+duplicate handles, dedup funko.com vs HobbyDB, a safety-net non-Pop pass, extract
+Pop# from titles, and **POST-PROCESS 5 — derive grouping fields**
+(`deriveGroupingFields`). Non-Pop removal must precede the handle merge: a real
+Pop and a non-Pop (Wacky Wobbler, Mystery Mini, etc.) can share one HobbyDB
+handle, and merging first unions their series so the non-Pop tag contaminates the
+fused record and the whole thing — including the real Pop — gets dropped.
 POST-PROCESS 5 emits two fields the FunkoDex series-completion feature consumes,
 computed from data already on each record (no network):
 - `setTag` — most-specific named set from the `series` array (specific set suffix;

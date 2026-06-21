@@ -23,13 +23,23 @@
  *   --skip-kenny      Skip Pass 1 (Kenny Chan merge)
  *   --skip-funko      Skip Pass 2 (funko.com scrape)
  *   --skip-pc         Skip Pass 3 (PriceCharting scrape)
- *   --pc-limit        Max items to look up on PriceCharting (default: 500)
+ *   --pc-limit        Max items to look up on PriceCharting (default: 100000 = all)
+ *   --pc-crawl        Pass 3b: discover & add PriceCharting Pops not in catalog (DEFAULT ON)
+ *   --no-pc-crawl     Disable Pass 3b (faster runs that don't grow the record set)
+ *   --pc-crawl-limit  Cap console sets crawled in Pass 3b (default: no cap)
+ *   --pc-fill-upc     Pass 3: also fill UPC on priced-but-no-UPC records (DEFAULT ON)
+ *   --no-pc-fill-upc  Disable the UPC top-up
  *   --skip-hdb        Skip Pass 4 (HobbyDB Reference Numbers / series scrape)
- *   --hdb-limit       Max HobbyDB lookups per run        (default: 200)
+ *   --hdb-limit       Max HobbyDB lookups per run        (default: 5000)
  *   --hdb-delay       Milliseconds between HobbyDB requests (default: 1500)
  *   --hdb-all         Re-check all HobbyDB records, ignoring hdbChecked
  *   --retry-no-refs   Re-fetch hdbChecked records that have no hdbid
  *   --retry-no-series Re-fetch hdbChecked records missing series tags
+ *
+ *   NOTE: defaults are tuned for the MOST COMPLETE build (Pass 3b on, no pricing
+ *   cap, large HobbyDB limit, UPC fill on), so a plain `node enrich.js` is the
+ *   full golden-master run (and the longest). Use --no-pc-crawl / --pc-limit N /
+ *   --skip-* for quick partial runs.
  *                     (use this to backfill `series` via parseHobbyDbSeries
  *                     on records already scraped before that field existed,
  *                     without rebuilding from scratch)
@@ -54,11 +64,17 @@ function parseArgs() {
     skipKenny:  false,
     skipFunko:  false,
     skipPc:     false,
-    pcLimit:    500,
+    // Completeness-maximizing defaults: a plain `node enrich.js` now does the
+    // most complete build possible (longest run). Use the --no-* / smaller-limit
+    // flags below for quick test runs.
+    pcLimit:    100000, // Pass 3: price every unpriced candidate (was 500 cap)
+    pcCrawl:    true,   // Pass 3b: discover & add PriceCharting Pops not in catalog
+    pcCrawlLimit: Infinity, // no cap on console-set crawl
+    pcFillUpc:  true,   // Pass 3: also revisit priced-but-no-UPC records to fill UPC
     chromePath: null,
     popsOnly:   false,
     skipHdb:    false,
-    hdbLimit:   200,    // max HobbyDB lookups per run
+    hdbLimit:   5000,   // max HobbyDB lookups per run (was 200) — clear the backlog
     hdbDelay:   1500,   // ms between HobbyDB requests
     hdbAll:          false,  // look up all records, not just missing
     retryNoRefs:     false,  // re-fetch records with hdbChecked but no hdbid
@@ -78,6 +94,8 @@ function parseArgs() {
       case '--skip-pc':     opts.skipPc     = true; break;
       case '--pc-limit':    opts.pcLimit    = parseInt(args[++i], 10); break;
       case '--pc-crawl':    opts.pcCrawl    = true; break;
+      case '--no-pc-crawl':    opts.pcCrawl   = false; break; // opt out of Pass 3b (faster test runs)
+      case '--no-pc-fill-upc': opts.pcFillUpc = false; break; // opt out of UPC top-up
       case '--pc-crawl-limit': opts.pcCrawlLimit = parseInt(args[++i], 10); break;
       case '--pc-fill-upc': opts.pcFillUpc = true; break;
       case '--chrome-path': opts.chromePath = args[++i]; break;
@@ -1119,7 +1137,8 @@ async function passPriceCharting(enriched, opts) {
  * as PriceCharting adds categories. PC_FUNKO_CONSOLES below is only a fallback
  * used if discovery fails. Unknown slugs 404 and are skipped harmlessly.
  *
- * OFF by default (requires --pc-crawl).
+ * ON by default (disable with --no-pc-crawl). This is the pass that grows the
+ * record set beyond Kenny Chan + funko.com, so it stays on for the golden master.
  */
 
 // Fallback list, used only if live discovery fails. Mirrors the funko-pop-*
@@ -1875,6 +1894,57 @@ function removeNonPops(enriched) {
 
 const TITLE_NUMBER_RE = /\s*#(\d{1,6})\b/;
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// POST-PROCESS — title normalisation
+// ═══════════════════════════════════════════════════════════════════════════════
+/**
+ * Clean display noise out of titles WITHOUT destroying meaningful data.
+ * Deliberately conservative — verified against the live catalog:
+ *   - decode HTML entities (&amp; -> &, &quot; -> ", &#39; -> ', etc.) — the bulk
+ *   - normalise smart quotes to straight quotes
+ *   - strip a leading "Funko Pop!" / "Pop!" prefix (only when more text follows)
+ *   - strip a trailing "(Bobble-Head)" — redundant on a Pop
+ * NOT touched (these are signal, not noise): "#123" Pop numbers, variant
+ * qualifiers like (Flocked)/(GITD)/(Chase)/(Prototype)/(Signed by ...), and
+ * series-colon titles like "Thor: Ragnarok" / "Soldier: 76" / "White Lantern:
+ * Batman" where the colon is part of the real movie/set/character name.
+ */
+function decodeHtmlEntities(s) {
+  if (!s || s.indexOf('&') === -1) return s;
+  const named = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+  return s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, code) => {
+    if (code[0] === '#') {
+      const cp = code[1] === 'x' || code[1] === 'X'
+        ? parseInt(code.slice(2), 16)
+        : parseInt(code.slice(1), 10);
+      return Number.isFinite(cp) ? String.fromCodePoint(cp) : m;
+    }
+    const k = code.toLowerCase();
+    return Object.prototype.hasOwnProperty.call(named, k) ? named[k] : m;
+  });
+}
+
+function cleanTitle(t) {
+  if (!t) return t;
+  let s = decodeHtmlEntities(t);
+  s = s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
+  s = s.replace(/^(?:Funko\s+)?Pop!?\s+(?=\S)/i, '');   // leading Funko Pop! / Pop!
+  s = s.replace(/\s*\(Bobble-?Head\)\s*$/i, '');         // trailing (Bobble-Head)
+  s = s.replace(/\s{2,}/g, ' ').trim();
+  return s;
+}
+
+function cleanTitles(enriched) {
+  console.log('\n── Post-process: Clean title noise ───────────────────────────');
+  let changed = 0;
+  for (const rec of enriched) {
+    const cleaned = cleanTitle(rec.title);
+    if (cleaned && cleaned !== rec.title) { rec.title = cleaned; changed++; }
+  }
+  console.log(`  Titles cleaned: ${changed}`);
+  return changed;
+}
+
 function extractNumbersFromTitles(enriched) {
   console.log('\n── Post-process: Extract Pop# from titles ────────────────────');
   let extracted = 0;
@@ -2215,6 +2285,12 @@ async function main() {
   //    Verified on the full base: rescues ~1,800 Pops, drops 0 legitimate records.
   const cleaned = removeNonPops(enriched);
   enriched.length = 0; enriched.push(...cleaned);
+
+  // 1b. Clean title noise (HTML entities, smart quotes, Funko Pop! prefix,
+  //     Bobble-Head suffix) BEFORE handle-merge and number extraction, so those
+  //     steps see the cleaned titles. Conservative — preserves #numbers, variant
+  //     qualifiers, and series-colon names.
+  cleanTitles(enriched);
 
   // 2. Merge duplicate handles — now safe, the non-Pop twins are already gone.
   const handleMerged = mergeDuplicateHandles(enriched);

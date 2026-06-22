@@ -4,6 +4,23 @@ Notable changes to the enricher pipeline. Most recent first.
 
 ---
 
+## Pass 3b console discovery — full ~109-set coverage — 2026-06-22
+
+### Fixed
+
+- **Pass 3b discovered only ~28 of PriceCharting's ~109 Funko console sets**, so
+  roughly three-quarters of PriceCharting's Funko catalog was never crawled —
+  Town, Deluxe, Monsters, Sanrio, South Park, Trains, Trolls, WWE Covers, and
+  ~80 other sets were silently skipped, capping the golden master's breadth.
+  Root cause: `discoverFunkoConsoles` scraped `/search-products?q=funko` (which
+  surfaces only the popular sets) instead of `/category/funko-pops` (the full
+  index). Now it scrapes the category index and unions the result with the
+  hardcoded fallback, so discovery can only ADD coverage, never regress. The
+  fallback list was expanded from 29 to the full 109 sets harvested from the live
+  index, so even a failed page fetch still crawls everything.
+
+---
+
 ## Resume-from-output + category-from-console — 2026-06-22
 
 ### Fixed

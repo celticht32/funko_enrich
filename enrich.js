@@ -1144,16 +1144,49 @@ async function passPriceCharting(enriched, opts) {
 // Fallback list, used only if live discovery fails. Mirrors the funko-pop-*
 // categories seen in PriceCharting's Funko nav as of this writing.
 const PC_FUNKO_CONSOLES = [
-  'funko-pop-8-bit', 'funko-pop-ad-icons', 'funko-pop-animation',
-  'funko-pop-basketball', 'funko-pop-bitty', 'funko-pop-classics',
-  'funko-pop-comics', 'funko-pop-deluxe-moment', 'funko-pop-die-cast',
-  'funko-pop-digital', 'funko-pop-disney', 'funko-pop-games',
-  'funko-pop-halo', 'funko-pop-heroes', 'funko-pop-hockey',
-  'funko-pop-holidays', 'funko-pop-icons', 'funko-pop-league-of-legends',
-  'funko-pop-marvel', 'funko-pop-mlb', 'funko-pop-movie-posters',
-  'funko-pop-movies', 'funko-pop-retro-toys', 'funko-pop-rides',
-  'funko-pop-rocks', 'funko-pop-soccer', 'funko-pop-star-wars',
-  'funko-pop-television', 'funko-pop-wwe',
+  // Full Funko console set list, harvested from PriceCharting's
+  // /category/funko-pops "Browse Popular Funko Pop Series" listing (the
+  // authoritative index). The old 29-set list missed ~80 sets — Town, Deluxe,
+  // Monsters, Sanrio, South Park, Trains, Trolls, etc. — leaving thousands of
+  // Pops undiscovered. Discovery now scrapes that page directly; this is the
+  // fallback if the page fetch fails.
+  'funko-pop-8-bit', 'funko-pop-ad-icons', 'funko-pop-air-force',
+  'funko-pop-albums', 'funko-pop-animation', 'funko-pop-aquasox',
+  'funko-pop-army', 'funko-pop-around-the-world', 'funko-pop-art-cover',
+  'funko-pop-art-series', 'funko-pop-artists', 'funko-pop-asia',
+  'funko-pop-bape', 'funko-pop-basketball', 'funko-pop-bitty',
+  'funko-pop-board-games', 'funko-pop-books', 'funko-pop-boxing',
+  'funko-pop-broadway', 'funko-pop-build-a-bear', 'funko-pop-candy',
+  'funko-pop-christmas', 'funko-pop-classics', 'funko-pop-college',
+  'funko-pop-comedians', 'funko-pop-comic-covers', 'funko-pop-comics',
+  'funko-pop-conan', 'funko-pop-deluxe', 'funko-pop-deluxe-moment',
+  'funko-pop-die-cast', 'funko-pop-digital', 'funko-pop-directors',
+  'funko-pop-disney', 'funko-pop-drag-queens', 'funko-pop-fantastic-beasts',
+  'funko-pop-fantastik-plastik', 'funko-pop-fashion', 'funko-pop-foodies',
+  'funko-pop-freddy-funko', 'funko-pop-game-covers', 'funko-pop-game-of-thrones',
+  'funko-pop-games', 'funko-pop-golf', 'funko-pop-gpk',
+  'funko-pop-halo', 'funko-pop-harry-potter', 'funko-pop-heroes',
+  'funko-pop-hockey', 'funko-pop-holidays', 'funko-pop-house-of-the-dragons',
+  'funko-pop-icons', 'funko-pop-lance', 'funko-pop-league-of-legends',
+  'funko-pop-magazine-covers', 'funko-pop-magic-the-gathering', 'funko-pop-marines',
+  'funko-pop-marvel', 'funko-pop-minis', 'funko-pop-mlb',
+  'funko-pop-moment', 'funko-pop-monsters', 'funko-pop-movie-posters',
+  'funko-pop-movies', 'funko-pop-muppets', 'funko-pop-my-little-pony',
+  'funko-pop-myths', 'funko-pop-nascar', 'funko-pop-navy',
+  'funko-pop-nba-mascots', 'funko-pop-nfl', 'funko-pop-pets',
+  'funko-pop-plants', 'funko-pop-plus', 'funko-pop-pusheen',
+  'funko-pop-racing', 'funko-pop-retro-toys', 'funko-pop-rides',
+  'funko-pop-rocks', 'funko-pop-royals', 'funko-pop-sanrio',
+  'funko-pop-sci-fi', 'funko-pop-se', 'funko-pop-sesame-street',
+  'funko-pop-snl', 'funko-pop-soccer', 'funko-pop-south-park',
+  'funko-pop-sports-legends', 'funko-pop-stan-lee', 'funko-pop-star-wars',
+  'funko-pop-television', 'funko-pop-tennis', 'funko-pop-the-vote',
+  'funko-pop-town', 'funko-pop-town-christmas', 'funko-pop-trading-cards',
+  'funko-pop-trains', 'funko-pop-trolls', 'funko-pop-ufc',
+  'funko-pop-uglydoll', 'funko-pop-valiant', 'funko-pop-vans',
+  'funko-pop-vhs-covers', 'funko-pop-wnba', 'funko-pop-wreck-it-ralph',
+  'funko-pop-wrestling', 'funko-pop-wwe', 'funko-pop-wwe-covers',
+  'funko-pop-zodiac',
 ];
 
 /**
@@ -1165,13 +1198,19 @@ const PC_FUNKO_CONSOLES = [
  */
 async function discoverFunkoConsoles(page) {
   try {
-    await page.goto(`${PC_BASE}/search-products?q=funko&type=prices`,
+    // The /category/funko-pops "Browse Popular Funko Pop Series" listing is the
+    // authoritative index of every funko-pop-* console set (~109). The old
+    // /search-products page only surfaced ~28, leaving most sets uncrawled.
+    await page.goto(`${PC_BASE}/category/funko-pops`,
       { waitUntil: 'domcontentloaded', timeout: 30000 });
     const html = await page.content();
     const slugs = new Set();
     const re = /\/console\/(funko-pop-[a-z0-9-]+)/g;
     let m;
     while ((m = re.exec(html)) !== null) slugs.add(m[1]);
+    // Union with the known fallback list so discovery can only ADD to coverage,
+    // never regress below the verified ~109 if the page changes shape.
+    for (const s of PC_FUNKO_CONSOLES) slugs.add(s);
     const list = [...slugs];
     if (list.length === 0) {
       console.log('  [console discovery found nothing — using fallback list]');

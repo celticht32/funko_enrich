@@ -85,7 +85,7 @@ function parseArgs() {
   };
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
-      case '--input':       opts.input      = args[++i]; break;
+      case '--input':       opts.input      = args[++i]; opts.inputExplicit = true; break;
       case '--output':      opts.output     = args[++i]; break;
       case '--delay':       opts.delay      = parseInt(args[++i], 10); break;
       case '--max-pages':   opts.maxPages   = parseInt(args[++i], 10); break;
@@ -2072,6 +2072,24 @@ function consoleSlugToLabel(slug) {
     .join(' ');
 }
 
+// Derive a Funko product-line CATEGORY ("Pop! Rocks", "Pop! Rides") from a
+// PriceCharting console slug ("funko-pop-rocks") or a pricecharting /game/ URL.
+// Pass 3b-discovered records are born with only a console slug + pricechartingUrl
+// and no category; without this they import category-blank, which both looks wrong
+// in the app AND fails to feed the dynamic category dropdown (which reads distinct
+// catalog categories). Returns '' if the slug isn't a funko-pop-* console.
+function categoryFromConsole(consoleSlug, pcUrl) {
+  let slug = consoleSlug || '';
+  if (!slug && pcUrl) {
+    const m = /\/game\/(funko-pop-[a-z0-9-]+)\//.exec(pcUrl);
+    if (m) slug = m[1];
+  }
+  const m = /^funko-pop-(.+)$/.exec(slug);
+  if (!m) return '';
+  const label = consoleSlugToLabel(m[1]);   // "rocks" → "Rocks"
+  return label ? `Pop! ${label}` : '';
+}
+
 function franchiseSuggestionFromUrl(url) {
   if (!url) return '';
   const m = /\/game\/funko-pop-([a-z0-9-]+)\//.exec(url);
@@ -2122,7 +2140,7 @@ function deriveGroupingFields(enriched) {
     }
   }
 
-  let setCount = 0, frCount = 0;
+  let setCount = 0, frCount = 0, catCount = 0;
   for (const rec of enriched) {
     const setTag = pickSetTag(rec.series, tagFreq);
     if (setTag) { rec.setTag = setTag; setCount++; }
@@ -2132,10 +2150,27 @@ function deriveGroupingFields(enriched) {
     // (the app prompts the user to assign).
     const fr = franchiseFromPcSeries(rec.pcSeries) || franchiseSuggestionFromUrl(rec.pricechartingUrl);
     if (fr) { rec.franchiseSuggestion = fr; frCount++; }
+
+    // Category: Pass 3b-discovered records (and any record) lacking a category
+    // get one derived from their PriceCharting console slug ("funko-pop-rides" →
+    // "Pop! Rides"). This makes them display correctly and feeds the app's dynamic
+    // category dropdown. Only fills when blank — never overwrites an existing
+    // category from HobbyDB/funko.com.
+    if (!rec.category) {
+      const cat = categoryFromConsole(rec.console, rec.pricechartingUrl);
+      if (cat) {
+        rec.category = cat;
+        // Also seed the series array so setTag/grouping has something to work with
+        // on otherwise-bare discovered records.
+        if (!rec.series || rec.series.length === 0) rec.series = [cat];
+        catCount++;
+      }
+    }
   }
 
   console.log(`  setTag assigned:             ${setCount}`);
   console.log(`  franchiseSuggestion assigned: ${frCount}`);
+  console.log(`  category derived from console: ${catCount}`);
   return enriched;
 }
 
@@ -2207,8 +2242,35 @@ async function main() {
   const opts = parseArgs();
   const startTime = Date.now();
 
-  // Load base data
-  const inputPath = path.resolve(opts.input);
+  // Load data. RESUME BEHAVIOUR: runs reload from disk each time, and the
+  // per-pass caps (hdbLimit etc.) mean one run may not clear the whole backlog.
+  // Because progress markers (hdbChecked, prices, discovered records) live in the
+  // ENRICHED OUTPUT — not the base — re-running from the base would re-process the
+  // same first N candidates forever and never reach the stragglers beyond the cap.
+  // So: unless --input was given explicitly, if a prior enriched output exists and
+  // is at least as large as the base, resume from IT. This makes each run ADVANCE
+  // through the backlog (and re-runs converge on full coverage). Pass 1/2/3b only
+  // ADD records and dedupe, so resuming never loses anything.
+  let inputPath = path.resolve(opts.input);
+  if (!opts.inputExplicit) {
+    const outPath = path.resolve(opts.output);
+    if (fs.existsSync(outPath)) {
+      try {
+        const baseLen = fs.existsSync(inputPath)
+          ? JSON.parse(fs.readFileSync(inputPath, 'utf8')).length : 0;
+        const outLen = JSON.parse(fs.readFileSync(outPath, 'utf8')).length;
+        if (outLen >= baseLen) {
+          console.log(`Resuming from prior output (${outLen} records ≥ base ${baseLen}) to advance the backlog.`);
+          console.log(`  (pass --input ${opts.input} explicitly to force a fresh build from base.)`);
+          inputPath = outPath;
+        } else {
+          console.log(`Prior output (${outLen}) smaller than base (${baseLen}) — looks partial; building from base.`);
+        }
+      } catch (e) {
+        console.log(`  (could not read prior output, building from base: ${e.message})`);
+      }
+    }
+  }
   if (!fs.existsSync(inputPath)) {
     console.error(`Input file not found: ${inputPath}`);
     process.exit(1);

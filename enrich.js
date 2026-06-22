@@ -1296,24 +1296,41 @@ async function passPriceChartingCrawl(enriched, opts) {
     for (const [setIdx, slug] of consoles.entries()) {
       const newBefore = discovered;    // to report new Pops found in THIS set
       console.log(`\n  [set ${setIdx + 1}/${totalSets}] ${slug}`);
-      let url = `${PC_BASE}/console/${slug}`;
-      let guard = 0;
-      while (url && guard < 50) {          // hard page cap per set
-        guard++; pages++;
-        process.stdout.write(`  ${slug} p${guard} `);
-        let stubs = [];
-        try {
-          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          const html = await page.content();
-          stubs = parsePriceChartingListing(html);
-          // Pagination: PriceCharting uses a "next" link; follow it if present.
-          const $ = cheerio.load(html);
-          const next = $('a#next, a.next, a[rel="next"]').attr('href');
-          url = next ? (next.startsWith('http') ? next : `${PC_BASE}${next}`) : null;
-        } catch (e) {
-          console.log('(page error)'); url = null; continue;
+      const url = `${PC_BASE}/console/${slug}`;
+      let stubs = [];
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        // PriceCharting console pages lazy-load their full figure list via JS as
+        // you scroll — they do NOT use a "next" link or a working ?page= param
+        // (verified: large sets show ~150 rows initially but have 500+ total, e.g.
+        // funko-pop-rocks = 534). So scroll to the bottom repeatedly until the row
+        // count stops growing, then parse the fully-loaded DOM once.
+        let prevCount = -1, stable = 0, scrolls = 0;
+        while (scrolls < 60) {            // hard cap: 60 scrolls (~9000 rows) per set
+          scrolls++;
+          const rowCount = await page.evaluate(() => {
+            window.scrollTo(0, document.body.scrollHeight);
+            const t = document.querySelector('#games_table tbody');
+            return t ? t.querySelectorAll('tr').length : 0;
+          });
+          if (rowCount === prevCount) {
+            stable++;
+            if (stable >= 3) break;       // 3 stable reads → fully loaded
+          } else {
+            stable = 0;
+            prevCount = rowCount;
+          }
+          await sleep(800);               // let the lazy-load fire
         }
-        console.log(`${stubs.length} rows`);
+        const html = await page.content();
+        stubs = parsePriceChartingListing(html);
+      } catch (e) {
+        console.log('  (page error)');
+        continue;
+      }
+      pages++;
+      console.log(`  ${slug}: ${stubs.length} rows loaded`);
+      {
         for (const s of stubs) {
           if (!s.id || havePcId.has(String(s.id))) continue;
           discovered++;
@@ -1365,8 +1382,7 @@ async function passPriceChartingCrawl(enriched, opts) {
           if (rec.upc) withUpc++;
           if (added >= crawlLimit) { process.stdout.write('\n'); console.log('  [crawl limit reached]'); break outer; }
         }
-        process.stdout.write('\n');   // finish the live progress line for this page
-        await sleep(PC_DELAY);
+        process.stdout.write('\n');   // finish the live progress line for this set
       }
       const newThisSet = discovered - newBefore;
       console.log(`    set done — ${newThisSet} new from ${slug} (running total: ${discovered} discovered, ${added} added)`);

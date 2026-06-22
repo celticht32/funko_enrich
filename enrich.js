@@ -2295,15 +2295,22 @@ async function main() {
     const outPath = path.resolve(opts.output);
     if (fs.existsSync(outPath)) {
       try {
-        const baseLen = fs.existsSync(inputPath)
-          ? JSON.parse(fs.readFileSync(inputPath, 'utf8')).length : 0;
-        const outLen = JSON.parse(fs.readFileSync(outPath, 'utf8')).length;
-        if (outLen >= baseLen) {
-          console.log(`Resuming from prior output (${outLen} records ≥ base ${baseLen}) to advance the backlog.`);
+        const outData = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+        // Resume only if the prior output actually carries ENRICHMENT — i.e. some
+        // records have been HobbyDB-checked or priced or PriceCharting-discovered.
+        // NOTE: do NOT compare output length to base length. The output is
+        // intentionally SMALLER than the base (~16k vs base ~24k) because
+        // post-process removes non-Pops and merges duplicates; a size test would
+        // wrongly reject a perfectly good enriched file and restart from scratch.
+        const enrichedCount = outData.reduce((n, r) =>
+          n + ((r.hdbChecked || r.marketValueComplete || r.marketValueLoose ||
+                r.pricechartingId || r.upc) ? 1 : 0), 0);
+        if (outData.length > 0 && enrichedCount > 0) {
+          console.log(`Resuming from prior output (${outData.length} records, ${enrichedCount} already enriched) to advance the backlog.`);
           console.log(`  (pass --input ${opts.input} explicitly to force a fresh build from base.)`);
           inputPath = outPath;
         } else {
-          console.log(`Prior output (${outLen}) smaller than base (${baseLen}) — looks partial; building from base.`);
+          console.log(`Prior output has no enrichment markers — building from base.`);
         }
       } catch (e) {
         console.log(`  (could not read prior output, building from base: ${e.message})`);

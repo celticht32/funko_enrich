@@ -122,7 +122,7 @@ Test small first, then scale in chunks (it's resumable — priced+UPC'd records
 skip on re-runs):
 
 ```
-# COMPLETE BUILD (default) — Pass 3b discovery, no pricing cap, hdbLimit 5000,
+# COMPLETE BUILD (default) — Pass 3b discovery, no pricing cap, uncapped HobbyDB,
 # UPC fill, and title cleanup are ALL on by default. This is the golden-master run.
 node enrich.js
 
@@ -138,18 +138,21 @@ now the most complete build, not a partial one:
 | `pcCrawl` (3b) | off | **on**        | `--no-pc-crawl`      |
 | `pcFillUpc`    | off | **on**        | `--no-pc-fill-upc`   |
 | `pcLimit`      | 500 | **100000**    | `--pc-limit N`       |
-| `hdbLimit`     | 200 | **5000**      | `--hdb-limit N`      |
+| `hdbLimit`     | 200 | **1000000** (uncapped) | `--hdb-limit N` |
 | `pcCrawlLimit` | —   | **Infinity**  | `--pc-crawl-limit N` |
 
 Pass 3b is the ONLY pass that grows the record set beyond Kenny Chan + funko.com,
-so it stays on for the master. **Resume behaviour:** runs reload from disk, and the
-per-pass caps (hdbLimit etc.) mean one run may not clear the whole backlog. Progress
-markers (hdbChecked, prices, discovered records) live in the ENRICHED OUTPUT, not
-the base — so unless `--input` is passed explicitly, a run RESUMES from the prior
-`funko_data_enriched.json` when it exists and is at least as large as the base. Each
-run thus ADVANCES through the backlog (re-runs converge on full coverage) instead of
-re-processing the same first N candidates from base forever. Pass
-`--input funko_data.json` explicitly to force a clean rebuild from base.
+so it stays on for the master. **Resume behaviour:** with the caps now uncapped one
+run usually clears everything, but resume still protects against crashes and partial
+runs. Progress markers (hdbChecked, prices, discovered records) live in the ENRICHED
+OUTPUT, not the base — so unless `--input` is passed explicitly, a run RESUMES from
+the prior `funko_data_enriched.json` when it contains ENRICHMENT MARKERS (any of
+hdbChecked / marketValue* / pricechartingId / upc). NOTE: do NOT gate resume on
+output-vs-base SIZE — the output is intentionally smaller than the base (~16k vs
+~24k) after non-Pop removal and dedup, so a size test wrongly rejects a good file and
+restarts from scratch (this was a real bug, now fixed). A resumed run skips
+already-done work (hdbChecked, priced, discovered-by-pcId) and advances anything
+outstanding. Pass `--input funko_data.json` explicitly to force a clean rebuild.
 
 **Run-till-flat loop:** re-run while three numbers keep climbing — `records`
 (Pass 3b), `priced` (Pass 3), `upc` (Pass 4/fill). Stop when two runs match =

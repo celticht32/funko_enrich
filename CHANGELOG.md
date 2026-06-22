@@ -4,6 +4,49 @@ Notable changes to the enricher pipeline. Most recent first.
 
 ---
 
+## Resume-guard fix, uncapped passes, crawl progress counter — 2026-06-22
+
+### Fixed
+
+- **Resume guard wrongly rejected valid enriched output, restarting from scratch.**
+  The first resume implementation only resumed when the output was ≥ the base
+  record count. But the enriched output is intentionally SMALLER than the base
+  (~16k vs base ~24k) because post-process removes non-Pops and merges duplicates,
+  so the size test always failed and every run rebuilt from base — defeating the
+  whole point of resume. The guard now resumes when the output contains
+  ENRICHMENT MARKERS (any of hdbChecked / marketValue* / pricechartingId / upc),
+  not based on size. Verified: a ~16k output with enrichment now correctly resumes.
+
+### Changed
+
+- **All enrichment passes are now effectively uncapped**, so one run reaches full
+  coverage instead of leaving a backlog: `hdbLimit` 5000 → 1000000 (Pass 4 processes
+  every HobbyDB candidate, including all Pass 3b discoveries beyond the old 5k cap),
+  `pcLimit` already 100000 (Pass 3), `pcCrawlLimit` Infinity (Pass 3b). Combined with
+  resume + checkpointing, a long run is crash-safe (a restart continues from the
+  banked progress). Lower with `--hdb-limit N` / `--pc-limit N` for quick test runs.
+
+### Added
+
+- **Pass 3b crawl progress counter.** Prints `[set X/total] slug` per set (total
+  computed at runtime from the discovered list — never hardcoded, grows if
+  PriceCharting adds sets) and a `set done — N new from slug (running total: …)`
+  summary. Per-set new-counts reveal slow stretches (many new Pops = many product
+  fetches) vs fast ones (already-owned sets), which is the best available read on
+  remaining time (a clean clock estimate isn't possible — per-set cost is dominated
+  by how many NEW Pops each set contains, not set position).
+
+### Termination audit
+
+- Verified every pass loop has a guaranteed stop (after the Pass 2 runaway):
+  Pass 2 has four independent stops (catalog-end, 500-page ceiling, 3× consecutive-
+  empty, error break); Pass 3b has a per-set `guard < 50` page cap plus null-on-no-
+  next and null-on-error over a finite set list; Pass 3/4/5 iterate fixed candidate
+  arrays; all `page.goto`/`waitFor*` calls carry timeouts. Uncapped passes are
+  candidate-bounded (finite), not infinite — they can run long, never forever.
+
+---
+
 ## Pass 3b console discovery — full ~109-set coverage — 2026-06-22
 
 ### Fixed

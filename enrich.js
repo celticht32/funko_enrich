@@ -74,7 +74,9 @@ function parseArgs() {
     chromePath: null,
     popsOnly:   false,
     skipHdb:    false,
-    hdbLimit:   5000,   // max HobbyDB lookups per run (was 200) — clear the backlog
+    hdbLimit:   1000000, // effectively uncapped — process every HobbyDB candidate
+                         // in one run (resume + checkpoints make a long run crash-safe).
+                         // Lower it (--hdb-limit N) only for quick partial test runs.
     hdbDelay:   1500,   // ms between HobbyDB requests
     hdbAll:          false,  // look up all records, not just missing
     retryNoRefs:     false,  // re-fetch records with hdbChecked but no hdbid
@@ -1286,10 +1288,14 @@ async function passPriceChartingCrawl(enriched, opts) {
   // Discover the full Funko console set list from PriceCharting's nav, so the
   // crawl covers every category rather than a hardcoded subset.
   const consoles = await discoverFunkoConsoles(page);
+  const totalSets = consoles.length;   // runtime count — never hardcoded; grows
+                                       // automatically if PriceCharting adds sets.
 
   try {
     outer:
-    for (const slug of consoles) {
+    for (const [setIdx, slug] of consoles.entries()) {
+      const newBefore = discovered;    // to report new Pops found in THIS set
+      console.log(`\n  [set ${setIdx + 1}/${totalSets}] ${slug}`);
       let url = `${PC_BASE}/console/${slug}`;
       let guard = 0;
       while (url && guard < 50) {          // hard page cap per set
@@ -1362,6 +1368,8 @@ async function passPriceChartingCrawl(enriched, opts) {
         process.stdout.write('\n');   // finish the live progress line for this page
         await sleep(PC_DELAY);
       }
+      const newThisSet = discovered - newBefore;
+      console.log(`    set done — ${newThisSet} new from ${slug} (running total: ${discovered} discovered, ${added} added)`);
     }
   } finally {
     try { await browser.close(); } catch (_) {}

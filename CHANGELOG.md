@@ -4,6 +4,62 @@ Notable changes to the enricher pipeline. Most recent first.
 
 ---
 
+## Resume-from-output + category-from-console — 2026-06-22
+
+### Fixed
+
+- **Per-run caps (e.g. hdbLimit) could leave a permanent backlog.** Runs reloaded
+  from base `funko_data.json` every time, so progress markers (hdbChecked, prices,
+  discovered records) — which live only in the enriched OUTPUT — never carried
+  forward. A capped pass therefore re-processed the same first N candidates on
+  every run and never reached the stragglers beyond the cap. Now, unless `--input`
+  is passed explicitly, a run RESUMES from the prior `funko_data_enriched.json`
+  when it exists and is ≥ the base size, so each run advances through the backlog
+  and re-runs converge on full coverage. Prints "Resuming from prior output…";
+  falls back to base if the output looks partial.
+
+### Added
+
+- **Category derived from PriceCharting console (`categoryFromConsole`).** Pass
+  3b-discovered records had no `category` (born with only console slug + URL), so
+  they imported category-blank and were invisible to the app's dynamic category
+  dropdown. `deriveGroupingFields` now maps the console slug to a category
+  (`funko-pop-rides` → "Pop! Rides"), fill-only, and seeds `series` on bare
+  records. The discovered breadth now displays correctly and feeds the dropdown.
+
+---
+
+### Fixed
+
+- **Pass 2 (funko.com) ran unbounded.** The result-count regex contained literal
+  backspace bytes (0x08) where `\b` was intended, so `catalogTotal` never
+  detected and the end-of-catalog stop never armed; compounded by fixed-stride
+  pagination (`start += 48`) while funko.com serves ~20/page, so the offset raced
+  past the real ~2,969-item catalog and the empty-page stop never fired either.
+  Now: `start` advances by ACTUAL products returned, the count is detected via a
+  JS-wait + robust regex, and a hard 500-page ceiling backstops it. Pass 2 now
+  stops cleanly (~149 pages).
+
+### Changed
+
+- **Defaults tuned for the most complete build.** A plain `node enrich.js` now
+  runs Pass 3b discovery (`pcCrawl`), UPC fill (`pcFillUpc`), no pricing cap
+  (`pcLimit` 500→100000), and a large HobbyDB limit (`hdbLimit` 200→5000). Opt
+  out with `--no-pc-crawl` / `--no-pc-fill-upc` / smaller `--pc-limit` / `--hdb-limit`
+  for quick runs. Pass 3b is the only pass that grows the record set, so it stays
+  on for the golden master.
+
+### Added
+
+- **Title cleanup post-process step (`cleanTitles`, step 1b).** Decodes HTML
+  entities (`&amp;`→`&`; ~778 records), straightens smart quotes, strips a leading
+  "Funko Pop!"/"Pop!" prefix and a trailing "(Bobble-Head)". Conservative:
+  preserves `#numbers`, variant qualifiers, and series-colon names ("Thor:
+  Ragnarok", "Soldier: 76") — those are real titles, not noise, and are
+  explicitly left intact.
+
+---
+
 ## Fix: non-Pop removal reordered before handle merge — 2026-06-20
 
 ### Fixed

@@ -118,14 +118,58 @@ Test small first, then scale in chunks (it's resumable — priced+UPC'd records
 skip on re-runs):
 
 ```
-# small validation run
-node enrich.js --skip-kenny --skip-funko --skip-hdb --skip-funko-detail \
-  --pc-crawl --pc-crawl-limit 10 --pc-fill-upc --pc-limit 20 --output test_output.json
+# COMPLETE BUILD (default) — Pass 3b discovery, no pricing cap, hdbLimit 5000,
+# UPC fill, and title cleanup are ALL on by default. This is the golden-master run.
+node enrich.js
 
-# production chunk
-node enrich.js --skip-kenny --skip-funko --skip-hdb --skip-funko-detail \
-  --pc-crawl --pc-crawl-limit 500 --pc-fill-upc --pc-limit 200 --output funko_data_enriched.json
+# quick validation run (opt OUT of the heavy passes)
+node enrich.js --no-pc-crawl --pc-limit 20 --hdb-limit 20 --output test_output.json
 ```
+
+**Completeness defaults (changed this session)** — a plain `node enrich.js` is
+now the most complete build, not a partial one:
+
+| Option         | Old | New (default) | Disable with         |
+|----------------|-----|---------------|----------------------|
+| `pcCrawl` (3b) | off | **on**        | `--no-pc-crawl`      |
+| `pcFillUpc`    | off | **on**        | `--no-pc-fill-upc`   |
+| `pcLimit`      | 500 | **100000**    | `--pc-limit N`       |
+| `hdbLimit`     | 200 | **5000**      | `--hdb-limit N`      |
+| `pcCrawlLimit` | —   | **Infinity**  | `--pc-crawl-limit N` |
+
+Pass 3b is the ONLY pass that grows the record set beyond Kenny Chan + funko.com,
+so it stays on for the master. **Resume behaviour:** runs reload from disk, and the
+per-pass caps (hdbLimit etc.) mean one run may not clear the whole backlog. Progress
+markers (hdbChecked, prices, discovered records) live in the ENRICHED OUTPUT, not
+the base — so unless `--input` is passed explicitly, a run RESUMES from the prior
+`funko_data_enriched.json` when it exists and is at least as large as the base. Each
+run thus ADVANCES through the backlog (re-runs converge on full coverage) instead of
+re-processing the same first N candidates from base forever. Pass
+`--input funko_data.json` explicitly to force a clean rebuild from base.
+
+**Run-till-flat loop:** re-run while three numbers keep climbing — `records`
+(Pass 3b), `priced` (Pass 3), `upc` (Pass 4/fill). Stop when two runs match =
+sources' ceiling.
+
+**Title cleanup (post-process step 1b, `cleanTitles`)** runs every build: decodes
+HTML entities (`&amp;`→`&`), straightens smart quotes, strips a leading
+"Funko Pop!"/"Pop!" prefix and a trailing "(Bobble-Head)". It deliberately does
+NOT touch `#numbers`, variant qualifiers ((Flocked)/(Prototype)/(Signed by…)), or
+**series-colon titles** like "Thor: Ragnarok" / "Soldier: 76" / "White Lantern:
+Batman" — the colon is part of the real name, so stripping it would destroy data
+(verified against all 63 such records). Do NOT add a series-colon strip.
+
+**Category from console (`deriveGroupingFields` → `categoryFromConsole`)** runs every
+build: Pass 3b-discovered records are born with only a console slug + pricechartingUrl
+and no category, so they would import category-blank (wrong in the app, and invisible
+to the dynamic category dropdown, which reads distinct catalog categories). The
+derivation maps the PriceCharting console slug to a category — `funko-pop-rides` →
+"Pop! Rides", `funko-pop-rocks` → "Pop! Rocks" — fills `category` only when blank
+(never overwrites HobbyDB/funko.com), and seeds the `series` array on bare records.
+This is what makes the discovered breadth show up correctly AND feed the app's
+auto-growing category dropdown. Cosmetic edge: a few slugs title-case imperfectly
+("Pop! 8 Bit" vs "Pop! 8-Bit"); the app's curated CategoryDef list overrides display
+casing on key collision, so add an exact-cased entry there if a label matters.
 
 Audit a run with `node check_test_output.js <file>` (totals + sample URLs to
 spot-check on pricecharting.com). Always spot-check a few sample prices/UPCs
@@ -133,9 +177,10 @@ against the live site — the console proves the plumbing ran, only eyeballing
 proves the match picked the right figure.
 
 Flags: `--skip-kenny/-funko/-hdb/-funko-detail/-pc`, `--pc-limit N`,
-`--pc-crawl`, `--pc-crawl-limit N`, `--pc-fill-upc` (also revisit priced records
-missing a UPC), `--chrome-path "C:\..."`, `--input`, `--output`. Console set list
-for the crawl is auto-discovered; a hardcoded fallback exists if discovery fails.
+`--pc-crawl`/`--no-pc-crawl`, `--pc-crawl-limit N`, `--pc-fill-upc`/`--no-pc-fill-upc`
+(revisit priced records missing a UPC), `--hdb-limit N`, `--chrome-path "C:\..."`,
+`--input`, `--output`. Console set list for the crawl is auto-discovered; a
+hardcoded fallback exists if discovery fails.
 
 ---
 

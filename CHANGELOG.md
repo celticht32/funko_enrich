@@ -4,6 +4,26 @@ Notable changes to the enricher pipeline. Most recent first.
 
 ---
 
+## Pass 3b: load full set contents via scroll (was capped at ~150/set) — 2026-06-22
+
+### Fixed
+
+- **Large PriceCharting sets were truncated to their first ~150 figures.** Console
+  pages (e.g. funko-pop-rocks) show a full count — "all 534 Funko Rocks Figures" —
+  but serve only ~150 rows in the initial HTML and lazy-load the rest via JS on
+  scroll. The crawl relied on a "next" link (`a#next, a.next, a[rel=next]`) that
+  PriceCharting does not use, and `?page=N` is ignored by the server (verified: it
+  returns the same first rows). So every large set lost the majority of its figures
+  — Rocks captured 150 of 534, and bigger sets (Disney, Marvel, Movies) lost even
+  more — potentially thousands of records missing from the golden master.
+  Fix: the crawl now loads each console page once and SCROLLS to the bottom
+  repeatedly until the `#games_table tbody` row count stops growing (3 stable
+  reads), then parses the fully-loaded DOM. Bounded by a 60-scroll hard cap per set
+  so it cannot hang. Per-set output now reports `<slug>: N rows loaded` so the full
+  count is visible (Rocks should report ~534, not 150).
+
+---
+
 ## Resume-guard fix, uncapped passes, crawl progress counter — 2026-06-22
 
 ### Fixed

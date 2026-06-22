@@ -35,7 +35,12 @@ independently skippable so a run can target just the work that's needed.
   `/category/funko-pops` (the full ~109-set index — NOT `/search-products`, which
   surfaces only ~28 popular sets and was the cause of a major coverage gap),
   unioned with a hardcoded 109-set fallback so discovery can only add, never
-  regress. This is the pass that delivers PriceCharting's full breadth.
+  regress. This is the pass that delivers PriceCharting's full breadth. Each
+  console page is loaded once and SCROLLED to the bottom until its row count
+  stabilizes (PriceCharting lazy-loads figures via JS on scroll — there is no
+  "next" link and `?page=N` is ignored, so a single fetch gets only ~150 of a
+  set's figures; scrolling pulls all of them, e.g. all 534 for funko-pop-rocks).
+  60-scroll hard cap per set.
 - **Pass 4 — HobbyDB** (`passHobbyDb`): scrapes HobbyDB reference numbers
   (UPC, Funko #, HDBID, retailer SKUs).
 - **Pass 5 — funko.com detail pages** (`passFunkoDetails`): franchise/series

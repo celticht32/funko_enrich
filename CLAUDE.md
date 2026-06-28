@@ -29,11 +29,14 @@ independently skippable so a run can target just the work that's needed.
   confident match harvests all three grade prices (loose/complete/mint) plus
   metadata (UPC, release date, ePID, etc.) from the product page.
 - **Pass 3b — PriceCharting catalog crawl** (`passPriceChartingCrawl`,
-  `--pc-crawl`): walks every Funko "console" set on PriceCharting and adds Pops
-  not already in the catalog, visiting each new Pop's product page to harvest its
-  UPC so the record is scannable. Sets are discovered from
-  `/category/funko-pops` (the full ~109-set index — NOT `/search-products`, which
-  surfaces only ~28 popular sets and was the cause of a major coverage gap),
+  `--pc-crawl`): walks every Funko "console" set on PriceCharting and DOWNLOADS-AND-
+  ADDS every Pop (deduping only by pricechartingId), visiting each Pop's product
+  page to harvest its UPC so the record is scannable. It does NOT try to match
+  against existing catalog records mid-crawl — PriceCharting titles differ too much
+  from catalog titles for that to be reliable, so duplicates against the existing
+  catalog are collapsed later in post-process `dedupeAndMerge`. Sets are discovered
+  from `/category/funko-pops` (the full ~109-set index — NOT `/search-products`,
+  which surfaces only ~28 popular sets and was the cause of a major coverage gap),
   unioned with a hardcoded 109-set fallback so discovery can only add, never
   regress. This is the pass that delivers PriceCharting's full breadth. Each
   console page is loaded once and SCROLLED to the bottom until its row count
@@ -48,9 +51,13 @@ independently skippable so a run can target just the work that's needed.
 
 Post-processing always runs (not gated by `--skip-*`), and ORDER MATTERS:
 remove non-Pop records FIRST (per-record, before any handle merge), then merge
-duplicate handles, dedup funko.com vs HobbyDB, a safety-net non-Pop pass, extract
-Pop# from titles, and **POST-PROCESS 5 — derive grouping fields**
-(`deriveGroupingFields`). Non-Pop removal must precede the handle merge: a real
+duplicate handles, **extract Pop# from titles** (so funkoNumber is populated for the
+dedup key), then **dedup — funko.com vs HobbyDB AND PriceCharting vs canonical**
+(`dedupeAndMerge`), a safety-net non-Pop pass, and finally **derive grouping
+fields** (`deriveGroupingFields`). PriceCharting records are added blind by Pass 3b
+(download-and-add) and collapsed here, matched to existing records by funkoNumber +
+core-name; this is why number extraction must run before dedup. Non-Pop removal must
+precede the handle merge: a real
 Pop and a non-Pop (Wacky Wobbler, Mystery Mini, etc.) can share one HobbyDB
 handle, and merging first unions their series so the non-Pop tag contaminates the
 fused record and the whole thing — including the real Pop — gets dropped.

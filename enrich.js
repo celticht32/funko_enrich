@@ -71,6 +71,8 @@ function parseArgs() {
     pcCrawl:    true,   // Pass 3b: discover & add PriceCharting Pops not in catalog
     pcCrawlLimit: Infinity, // no cap on console-set crawl
     pcFillUpc:  true,   // Pass 3: also revisit priced-but-no-UPC records to fill UPC
+    repriceOlderThan: 0, // Pass 3: if >0, re-price records whose priceCheckedAt is
+                         // older than this many days (refreshes aging prices). 0=off.
     chromePath: null,
     popsOnly:   false,
     skipHdb:    false,
@@ -85,32 +87,45 @@ function parseArgs() {
     funkoDetailDelay: 1000,  // ms between product page fetches (domcontentloaded = fast)
     popFilter:  true,   // keep only standard Pops from funko.com
   };
+  // Parse an integer flag value, falling back to the existing default if the
+  // value is missing or non-numeric — a typo like "--hdb-limit abc" otherwise
+  // yields NaN, which silently makes `.slice(0, NaN)` return zero candidates and
+  // a whole pass do nothing.
+  const intArg = (raw, fallback) => {
+    const n = parseInt(raw, 10);
+    if (Number.isNaN(n)) {
+      console.warn(`  [warn] ignoring non-numeric flag value "${raw}" — using ${fallback}`);
+      return fallback;
+    }
+    return n;
+  };
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
       case '--input':       opts.input      = args[++i]; opts.inputExplicit = true; break;
       case '--output':      opts.output     = args[++i]; break;
-      case '--delay':       opts.delay      = parseInt(args[++i], 10); break;
-      case '--max-pages':   opts.maxPages   = parseInt(args[++i], 10); break;
+      case '--delay':       opts.delay      = intArg(args[++i], opts.delay); break;
+      case '--max-pages':   opts.maxPages   = intArg(args[++i], opts.maxPages); break;
       case '--skip-kenny':  opts.skipKenny  = true; break;
       case '--skip-funko':  opts.skipFunko  = true; break;
       case '--skip-pc':     opts.skipPc     = true; break;
-      case '--pc-limit':    opts.pcLimit    = parseInt(args[++i], 10); break;
+      case '--pc-limit':    opts.pcLimit    = intArg(args[++i], opts.pcLimit); break;
       case '--pc-crawl':    opts.pcCrawl    = true; break;
       case '--no-pc-crawl':    opts.pcCrawl   = false; break; // opt out of Pass 3b (faster test runs)
       case '--no-pc-fill-upc': opts.pcFillUpc = false; break; // opt out of UPC top-up
-      case '--pc-crawl-limit': opts.pcCrawlLimit = parseInt(args[++i], 10); break;
+      case '--pc-crawl-limit': opts.pcCrawlLimit = intArg(args[++i], opts.pcCrawlLimit); break;
       case '--pc-fill-upc': opts.pcFillUpc = true; break;
+      case '--reprice-older-than': opts.repriceOlderThan = intArg(args[++i], opts.repriceOlderThan); break;
       case '--chrome-path': opts.chromePath = args[++i]; break;
       case '--pops-only':   opts.popsOnly   = true; break;
       case '--no-pop-filter': opts.popFilter = false; break;
       case '--skip-hdb':    opts.skipHdb   = true; break;
-      case '--hdb-limit':   opts.hdbLimit  = parseInt(args[++i], 10); break;
-      case '--hdb-delay':   opts.hdbDelay  = parseInt(args[++i], 10); break;
+      case '--hdb-limit':   opts.hdbLimit  = intArg(args[++i], opts.hdbLimit); break;
+      case '--hdb-delay':   opts.hdbDelay  = intArg(args[++i], opts.hdbDelay); break;
       case '--hdb-all':          opts.hdbAll          = true; break;
       case '--retry-no-refs':    opts.retryNoRefs     = true; break;
       case '--retry-no-series':  opts.retryNoSeries   = true; break;
       case '--skip-funko-detail': opts.skipFunkoDetail = true; break;
-      case '--funko-detail-delay': opts.funkoDetailDelay = parseInt(args[++i], 10); break;
+      case '--funko-detail-delay': opts.funkoDetailDelay = intArg(args[++i], opts.funkoDetailDelay); break;
     }
   }
   return opts;
@@ -668,7 +683,10 @@ async function passFunkoCom(enriched, titleIndex, handleIndex, opts) {
 const PC_BASE        = 'https://www.pricecharting.com';
 const PC_SEARCH_URL  = (q) => `${PC_BASE}/api/products?q=${encodeURIComponent(q)}&id=funko-pops`;
 const PC_HTML_SEARCH = (q) => `${PC_BASE}/search-products?q=${encodeURIComponent(q)}&type=prices`;
-const PC_DELAY       = 2500; // ms between PriceCharting requests — be polite
+const PC_DELAY       = 1100; // ms between PriceCharting requests — be polite
+                             // (lowered from 2500; PriceCharting serves plain
+                             // pages without aggressive rate-limiting. If you get
+                             // blocked/throttled, raise this back toward 2500.)
 
 /**
  * Reduce a catalog title to a core search query. PriceCharting's search wants
@@ -990,6 +1008,8 @@ async function passPriceCharting(enriched, opts) {
   // looked at again). Records that already have both a price and a UPC are
   // always skipped.
   const fillUpc = !!opts.pcFillUpc;
+  const repriceMs = opts.repriceOlderThan > 0 ? opts.repriceOlderThan * 86400000 : 0;
+  const now = Date.now();
   const candidates = enriched
     .map((rec, i) => ({ rec, i }))
     .filter(({ rec }) => {
@@ -997,7 +1017,14 @@ async function passPriceCharting(enriched, opts) {
       const hasUpc   = !!(rec.upc && String(rec.upc).trim());
       if (!hasPrice) return true;            // never priced → look up
       if (fillUpc && !hasUpc) return true;   // priced but no UPC → revisit for UPC
-      return false;                          // already complete → skip
+      // Stale-price refresh: if enabled, a priced record whose capture date is
+      // older than the threshold (or has no date at all) re-enters the pool so
+      // its market value gets refreshed.
+      if (repriceMs > 0) {
+        const t = rec.priceCheckedAt ? Date.parse(rec.priceCheckedAt) : NaN;
+        if (isNaN(t) || (now - t) > repriceMs) return true;
+      }
+      return false;                          // already complete & fresh → skip
     })
     .slice(0, opts.pcLimit);
 
@@ -1037,6 +1064,16 @@ async function passPriceCharting(enriched, opts) {
     for (let i = 0; i < candidates.length; i++) {
       const { rec, i: idx } = candidates[i];
       process.stdout.write(`  [${i + 1}/${candidates.length}] ${rec.title.slice(0, 50).padEnd(50)} `);
+
+      // Checkpoint every 100 iterations so an interruption during this
+      // (potentially long) pricing pass doesn't lose its work — same pattern as
+      // Pass 4. Placed at the TOP of the loop so records that `continue` (not
+      // found / uncertain / no price) don't bypass the save. The priced records
+      // persist; a restart re-prices at most ~100. Unindented to keep it cheap.
+      if (i > 0 && i % 100 === 0) {
+        try { fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched), 'utf8'); }
+        catch (e) { console.log(`  [warn] checkpoint save failed: ${e.message}`); }
+      }
 
       if (i > 0 && i % BROWSER_RESTART_INTERVAL === 0) {
         await restartBrowser();
@@ -1082,6 +1119,11 @@ async function passPriceCharting(enriched, opts) {
       const updates = {
         pricechartingId:  String(match.id),
         pricechartingUrl: (detail && detail.url) || match.href,
+        // ISO date this price was captured. Enables --reprice-older-than to
+        // refresh aging prices on a later run. Records priced before this field
+        // existed simply have no timestamp and are treated as "stale" by the
+        // reprice filter (so they get refreshed once, then carry a date forward).
+        priceCheckedAt:   new Date().toISOString(),
       };
       if (loose)    updates.marketValueLoose    = loose;
       if (complete) updates.marketValueComplete = complete;
@@ -1112,6 +1154,9 @@ async function passPriceCharting(enriched, opts) {
     }
   } finally {
     try { await browser.close(); } catch (_) {}
+    // Final save to capture the last partial batch.
+    try { fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched), 'utf8'); }
+    catch (e) { console.log(`  [warn] final save failed: ${e.message}`); }
   }
 
   console.log(`  Found: ${found} (${approxFound} approximate) | UPCs filled: ${upcFilled} | Uncertain (skipped): ${uncertain} | Not found: ${notFound} | Errors: ${errors}`);
@@ -1243,7 +1288,15 @@ function parsePriceChartingListing(html) {
     const a = $(el).find('a[href*="/game/"]').first();
     const href = a.attr('href') || '';
     if (!href) return;
-    const id = (a.attr('title') || '').trim() || href.split('-').pop();
+    // The real PriceCharting product id is in the link's title attr. If that's
+    // missing, DO NOT fall back to href.split('-').pop() — that returns the
+    // trailing Funko number (e.g. ".../shaak-ti-853" → "853"), which is NOT a
+    // unique PriceCharting id and repeats across lines, corrupting the havePcId
+    // dedupe and the stored pricechartingId. Fall back to the full product slug
+    // (the last path segment), which is unique per product.
+    const titleId = (a.attr('title') || '').trim();
+    const slug = href.split('/').filter(Boolean).pop() || href;
+    const id = titleId || slug;
     const name = $(el).find('td.title').text().trim().replace(/\s+/g, ' ');
     const consoleSlug = (href.match(/\/game\/([^/]+)\//) || [])[1] || '';
     out.push({
@@ -1267,10 +1320,32 @@ async function passPriceChartingCrawl(enriched, opts) {
     return { discovered: 0, added: 0, pages: 0, withUpc: 0 };
   }
 
-  // Index of PriceCharting ids we already have, to dedupe discoveries.
-  const havePcId = new Set(
-    enriched.map(r => r.pricechartingId).filter(Boolean).map(String)
-  );
+  // Index of PriceCharting ids we already have, to dedupe discoveries by pcId
+  // (prevents re-adding within/across runs). Catalog-level dedup (same Pop from
+  // another source) is handled in post-process dedupeAndMerge.
+  //
+  // FORMAT TOLERANCE: the stored pricechartingId format changed over time — older
+  // runs stored the trailing number from the slug ("853"), newer runs store the
+  // full slug ("shaak-ti-853"). To dedupe correctly across that change, register
+  // BOTH the raw id and its trailing-number form, and check a discovery's id in
+  // both forms too. Without this, records added by a prior run look "new" again
+  // (the sets never intersect) and get re-added as duplicates.
+  const pcIdForms = id => {
+    const s = String(id);
+    const forms = new Set([s]);
+    const tail = s.match(/(\d+)$/);          // trailing number of a slug
+    if (tail) forms.add(tail[1]);
+    return forms;
+  };
+  const havePcId = new Set();
+  for (const r of enriched) {
+    if (!r.pricechartingId) continue;
+    for (const f of pcIdForms(r.pricechartingId)) havePcId.add(f);
+  }
+  const haveThisPcId = id => {
+    for (const f of pcIdForms(id)) if (havePcId.has(f)) return true;
+    return false;
+  };
 
   const chromePath = findChrome(opts.chromePath);
   let browser = await puppeteer.launch({
@@ -1282,7 +1357,28 @@ async function passPriceChartingCrawl(enriched, opts) {
   await page.setViewport({ width: 1280, height: 900 });
   await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
 
-  let discovered = 0, added = 0, pages = 0, withUpc = 0;
+  // Periodically restart the browser. Pass 3b visits tens of thousands of product
+  // pages over many hours on a single Chrome instance; without periodic restarts
+  // Chrome's memory grows unbounded and eventually slows or crashes the crawl
+  // (Pass 3/4 already do this — 3b is the longest pass and needs it most). Restart
+  // every BROWSER_RESTART_INTERVAL product-page fetches.
+  const BROWSER_RESTART_INTERVAL = 200;
+  let fetchesSinceRestart = 0;
+  async function restartBrowser() {
+    try { await browser.close(); } catch (_) {}
+    browser = await puppeteer.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled', '--window-size=1280,900'],
+    });
+    page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 900 });
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
+    fetchesSinceRestart = 0;
+    console.log('  [browser restarted]');
+  }
+
+  let discovered = 0, added = 0, pages = 0, withUpc = 0, limitHit = false;
   const crawlLimit = opts.pcCrawlLimit || Infinity;
 
   // Discover the full Funko console set list from PriceCharting's nav, so the
@@ -1291,58 +1387,169 @@ async function passPriceChartingCrawl(enriched, opts) {
   const totalSets = consoles.length;   // runtime count — never hardcoded; grows
                                        // automatically if PriceCharting adds sets.
 
+  // Per-set checkpoint: Pass 3b is long and (unlike Pass 4) used to hold all its
+  // work in memory until the pass returned, so ANY interruption lost the entire
+  // crawl. Now we save the output after each set AND record completed set slugs in
+  // a sidecar progress file, so an interrupted run resumes mid-crawl (skipping
+  // finished sets) instead of starting over. The file is cleared when the pass
+  // completes fully.
+  // Derive a distinct sidecar path. Always APPEND the suffix rather than
+  // substituting ".json" — if opts.output had no .json extension, a substitution
+  // would leave progressPath === output path and saveProgress would overwrite the
+  // catalog with the slug list. Appending guarantees a separate file.
+  const outResolved = path.resolve(opts.output);
+  const progressPath = outResolved.replace(/\.json$/i, '') + '.pc3b_progress.json';
+  let doneSets = new Set();
+  try {
+    if (fs.existsSync(progressPath)) {
+      const saved = JSON.parse(fs.readFileSync(progressPath, 'utf8'));
+      if (Array.isArray(saved)) doneSets = new Set(saved);
+      if (doneSets.size) console.log(`  Resuming Pass 3b — ${doneSets.size} sets already done, skipping them.`);
+    }
+  } catch (_) { /* corrupt progress file — start fresh */ }
+  const saveProgress = () => {
+    try {
+      fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched), 'utf8');
+      fs.writeFileSync(progressPath, JSON.stringify([...doneSets]), 'utf8');
+    } catch (e) { console.log(`  [warn] checkpoint save failed: ${e.message}`); }
+  };
+
   try {
     outer:
     for (const [setIdx, slug] of consoles.entries()) {
+      if (doneSets.has(slug)) { continue; }   // already crawled in a prior run
       const newBefore = discovered;    // to report new Pops found in THIS set
       console.log(`\n  [set ${setIdx + 1}/${totalSets}] ${slug}`);
+      // Per-set restart: start each set on a fresh browser to release memory
+      // accumulated by the previous set (skip when nothing has been fetched yet,
+      // i.e. the very first set, since the browser is already fresh).
+      if (fetchesSinceRestart > 0) { await restartBrowser(); }
       const url = `${PC_BASE}/console/${slug}`;
       let stubs = [];
+      let setTarget = 0;       // PriceCharting's stated figure count for this set
+      let setRowsLoaded = 0;   // rows we actually loaded
+      let pageLoadFailed = false;
       try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        // Load the listing page, with retry-on-empty. Some sets intermittently
+        // come back blank (0 rows AND no "Prices for all N" target text) — the
+        // page request returned but PriceCharting served an empty/blocked body
+        // this session (observed on funko-pop-digital, -asia, -wwe-covers). A
+        // blank load is NOT a real empty set, so restart the browser and re-fetch
+        // up to 2 more times before accepting it. Sets that are genuinely tiny
+        // still load their rows/target on the first try, so this only re-hits the
+        // truly-blank ones.
+        let loadAttempt = 0;
+        while (true) {
+          loadAttempt++;
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          const probe = await page.evaluate(() => {
+            const t = document.querySelector('#games_table tbody');
+            const rows = t ? t.querySelectorAll('tr').length : 0;
+            const hasTarget = /for all\s+[\d,]+\s+Funko/i.test(document.body.innerText)
+                           || /\/\s*[\d,]+\s+items/i.test(document.body.innerText);
+            return { rows, hasTarget };
+          });
+          if (probe.rows > 0 || probe.hasTarget) break;   // real content present
+          if (loadAttempt > 3) break;                     // gave it 3 tries; let the
+                                                          // gate leave it for retry
+          console.log(`    [empty load] ${slug} returned blank — restarting browser and retrying (attempt ${loadAttempt})`);
+          await restartBrowser();
+        }
         // PriceCharting console pages lazy-load their full figure list via JS as
         // you scroll — they do NOT use a "next" link or a working ?page= param
         // (verified: large sets show ~150 rows initially but have 500+ total, e.g.
         // funko-pop-rocks = 534). So scroll to the bottom repeatedly until the row
         // count stops growing, then parse the fully-loaded DOM once.
+        // PriceCharting states the true set size on the page ("Prices for all N
+        // Funko <set> Figures"). Read that target and scroll until the loaded row
+        // count reaches it — deterministic completeness instead of guessing from
+        // "row count stopped changing", which truncated big sets (Marvel showed
+        // 1050 of its real 1870 because lazy-load paused and we accepted it).
+        const targetCount = await page.evaluate(() => {
+          const text = document.body.innerText;
+          // Format A: "Prices for all 1870 Funko <set> Figures"
+          let m = text.match(/for all\s+([\d,]+)\s+Funko/i);
+          // Format B: "You own: 0 / 520 items"  (collection-tracker header)
+          if (!m) m = text.match(/\/\s*([\d,]+)\s+items/i);
+          return m ? parseInt(m[1].replace(/,/g, ''), 10) : 0;
+        });
+        if (targetCount > 0) console.log(`    target: ${targetCount} figures`);
+        setTarget = targetCount;
+
         let prevCount = -1, stable = 0, scrolls = 0;
-        while (scrolls < 60) {            // hard cap: 60 scrolls (~9000 rows) per set
+        const STABLE_NEEDED = 5;   // fallback stability when no target is known
+        const MAX_SCROLLS = 200;   // generous cap for very large sets (Marvel ~1870)
+        while (scrolls < MAX_SCROLLS) {
           scrolls++;
           const rowCount = await page.evaluate(() => {
             window.scrollTo(0, document.body.scrollHeight);
             const t = document.querySelector('#games_table tbody');
             return t ? t.querySelectorAll('tr').length : 0;
           });
+
+          // PRIMARY exit: we have a target and we've reached (or passed) it.
+          if (targetCount > 0 && rowCount >= targetCount) break;
+
           if (rowCount === prevCount) {
             stable++;
-            if (stable >= 3) break;       // 3 stable reads → fully loaded
+            // If we know the target and haven't reached it, a stalled count means
+            // lazy-load is just slow — wait longer and keep trying rather than
+            // giving up. Only accept a stall as "done" after many tries, and only
+            // when we either have no target or are within a small margin of it.
+            if (targetCount > 0) {
+              if (stable >= 12) {
+                // Stuck well short of target after many patient retries (12 ×
+                // 2500ms ≈ 30s of waiting at the same count). Take what loaded and
+                // warn — the completeness gate below will leave the set unmarked
+                // so it retries next run rather than being skipped.
+                if (rowCount < targetCount - 5) {
+                  console.log(`    [warn] loaded ${rowCount} of ${targetCount} — set may be incomplete`);
+                }
+                break;
+              }
+              await sleep(2500);   // patient extra wait before the next try
+            } else {
+              // No target found: fall back to stability detection.
+              if (stable >= STABLE_NEEDED) {
+                await sleep(3000);
+                const confirm = await page.evaluate(() => {
+                  window.scrollTo(0, document.body.scrollHeight);
+                  const t = document.querySelector('#games_table tbody');
+                  return t ? t.querySelectorAll('tr').length : 0;
+                });
+                if (confirm === rowCount) break;
+                stable = 0; prevCount = confirm; continue;
+              }
+            }
           } else {
             stable = 0;
             prevCount = rowCount;
           }
-          await sleep(800);               // let the lazy-load fire
+          await sleep(900);   // let the lazy-load fire
         }
         const html = await page.content();
         stubs = parsePriceChartingListing(html);
+        setRowsLoaded = stubs.length;
       } catch (e) {
         console.log('  (page error)');
+        pageLoadFailed = true;
         continue;
       }
       pages++;
       console.log(`  ${slug}: ${stubs.length} rows loaded`);
       {
         for (const s of stubs) {
-          if (!s.id || havePcId.has(String(s.id))) continue;
+          if (!s.id || haveThisPcId(s.id)) continue;
+          for (const f of pcIdForms(s.id)) havePcId.add(f);
           discovered++;
-          havePcId.add(String(s.id));
-          // Live progress: this loop visits one product page per new Pop (~2.5s
-          // each), so without this the console looks frozen for minutes.
+          // Live progress: one product-page fetch per new Pop (~2.5s each).
           process.stdout.write(`\r    +${added + 1} new | ${withUpc} w/UPC | ${(s.name || '').slice(0, 40).padEnd(40)}`);
-          // Listing rows carry all three prices inline. To make the new Pop
-          // SCANNABLE we also visit its product page to harvest the UPC and the
-          // rest of the metadata (release date, ePID, etc.) — the listing row
-          // alone has no UPC. This is the slow part of the crawl: one extra page
-          // fetch per newly-discovered Pop.
+
+          // Just download and add. Deduplication against existing catalog records
+          // (same Pop already present from HobbyDB/funko.com) is handled in
+          // post-process by dedupeAndMerge, which has the fully-populated
+          // funkoNumber field and cleaned titles to match on — far more reliable
+          // than matching mid-crawl on raw scraped titles.
           const rec = {
             handle: `pc-${s.id}`,
             title: s.name,
@@ -1354,44 +1561,69 @@ async function passPriceChartingCrawl(enriched, opts) {
           if (s.complete) rec.marketValueComplete = s.complete;
           if (s.mint)     rec.marketValueNew      = s.mint;
 
-          // Product-page visit for UPC + metadata. Reuses the same scraper Pass 3
-          // uses. On failure we still keep the priced listing-row record (just
-          // without a UPC), so a transient page error never loses the discovery.
+          // Mid-set restart: long sets (e.g. Animation ~2,920 records) would
+          // otherwise run thousands of fetches on one browser instance. Restart
+          // every BROWSER_RESTART_INTERVAL fetches to cap memory. Done before the
+          // fetch so the new `page` is the one used below.
+          if (fetchesSinceRestart >= BROWSER_RESTART_INTERVAL) { await restartBrowser(); }
+          fetchesSinceRestart++;
+
+          // Product-page visit for UPC + metadata. On failure keep the priced
+          // listing-row record so a transient page error never loses the find.
           try {
             const detail = await scrapePriceChartingPrices(page, s.id, s.console, s.href);
-            if (detail && detail.meta) {
-              for (const [k, v] of Object.entries(detail.meta)) {
-                if (v && (rec[k] === undefined || rec[k] === null || rec[k] === '')) {
-                  rec[k] = v;
-                }
-              }
-            }
-            // Prefer product-page prices if the listing row lacked any.
             if (detail) {
+              if (detail.meta) for (const [k, v] of Object.entries(detail.meta)) {
+                if (v && (rec[k] === undefined || rec[k] === null || rec[k] === '')) rec[k] = v;
+              }
               if (!rec.marketValueLoose    && detail.loose)    rec.marketValueLoose    = detail.loose;
               if (!rec.marketValueComplete && detail.complete) rec.marketValueComplete = detail.complete;
               if (!rec.marketValueNew      && detail.mint)     rec.marketValueNew      = detail.mint;
             }
             await sleep(PC_DELAY);
-          } catch (e) {
-            // keep the listing-row record as-is
-          }
+          } catch (e) { /* keep listing-row record as-is */ }
 
           enriched.push(rec);
           added++;
           if (rec.upc) withUpc++;
-          if (added >= crawlLimit) { process.stdout.write('\n'); console.log('  [crawl limit reached]'); break outer; }
+          if (added >= crawlLimit) { process.stdout.write('\n'); console.log('  [crawl limit reached]'); limitHit = true; break outer; }
         }
         process.stdout.write('\n');   // finish the live progress line for this set
       }
       const newThisSet = discovered - newBefore;
-      console.log(`    set done — ${newThisSet} new from ${slug} (running total: ${discovered} discovered, ${added} added)`);
+
+      // Completeness gate: only mark a set DONE (so it's skipped on resume) if it
+      // actually loaded acceptably. A set that loaded 0 rows (transient empty page)
+      // or stalled well short of PriceCharting's stated target is left UNMARKED so
+      // the next run retries it, instead of being silently skipped forever.
+      const reachedTarget = setTarget > 0 ? (setRowsLoaded >= setTarget - 5) : (setRowsLoaded > 0);
+      const acceptable = !pageLoadFailed && setRowsLoaded > 0 && reachedTarget;
+
+      if (acceptable) {
+        console.log(`    set done — ${newThisSet} new from ${slug} (running total: ${discovered} discovered, ${added} added)`);
+        doneSets.add(slug);
+        saveProgress();   // checkpoint after every set so an interrupt loses ≤1 set
+      } else {
+        const why = pageLoadFailed ? 'page error'
+                  : setRowsLoaded === 0 ? 'loaded 0 rows'
+                  : `loaded ${setRowsLoaded} of ${setTarget}`;
+        console.log(`    set NOT marked done (${why}) — ${newThisSet} new; will retry next run`);
+        // Still persist the records we DID get, just don't mark the set complete.
+        saveProgress();
+      }
+    }
+    // Pass completed fully — clear the progress sidecar so the next run does a
+    // fresh crawl (picking up any newly-listed Pops) rather than skipping all sets.
+    // Skip the clear if we exited early on a crawl limit: progress is incomplete
+    // and a resume should continue, not restart.
+    if (!limitHit) {
+      try { if (fs.existsSync(progressPath)) fs.unlinkSync(progressPath); } catch (_) {}
     }
   } finally {
     try { await browser.close(); } catch (_) {}
   }
 
-  console.log(`  Pages crawled: ${pages} | New Pops discovered: ${added} | With UPC (scannable): ${withUpc}`);
+  console.log(`  Pages crawled: ${pages} | New Pops added: ${added} | With UPC (scannable): ${withUpc}`);
   return { discovered, added, pages, withUpc };
 }
 
@@ -1667,16 +1899,20 @@ async function passHobbyDb(enriched, opts) {
 
       await sleep(opts.hdbDelay);
 
-      // Save every 25 records — balances progress safety against disk I/O.
-      // hdbChecked markers persist so restart skips processed records (max 25 lost).
-      if ((i + 1) % 10 === 0) {
-        fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched, null, 2), 'utf8');
+      // Checkpoint every 100 records (was 10). Each write serialises the whole
+      // ~25k-record array (~8.5 MB), so writing every 10 over ~19k records meant
+      // ~1,900 full writes (~16 GB cumulative I/O + heavy stringify). Every 100
+      // cuts that ~10x; on crash we lose at most ~100 records, which resume just
+      // re-fetches. Unindented JSON (no `null, 2`) roughly halves the bytes — the
+      // app re-parses anyway, so indentation buys nothing at runtime.
+      if ((i + 1) % 100 === 0) {
+        fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched), 'utf8');
       }
     }
   } finally {
     await browser.close();
     // Final save to capture the last partial batch
-    fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched, null, 2), 'utf8');
+    fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched), 'utf8');
   }
 
   console.log(`  Found: ${found} | Not found: ${notFound} | Errors: ${errors}`);
@@ -1746,6 +1982,7 @@ async function passFunkoDetails(enriched, opts) {
     .map((rec, i) => ({ rec, i }))
     .filter(({ rec }) =>
       !rec.franchise &&
+      !rec.franchiseChecked &&
       rec.productUrl
     );
 
@@ -1779,11 +2016,24 @@ async function passFunkoDetails(enriched, opts) {
       const { rec, i: idx } = candidates[i];
       process.stdout.write(`  [${i + 1}/${candidates.length}] ${rec.title.slice(0, 45).padEnd(45)} `);
 
+      // Checkpoint every 100 iterations (top of loop, before any continue/throw)
+      // so an interruption during this ~35-min pass persists the franchise data
+      // and franchiseChecked markers — otherwise a restart re-scrapes all ~2,000.
+      if (i > 0 && i % 100 === 0) {
+        try { fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched), 'utf8'); }
+        catch (e) { console.log(`  [warn] checkpoint save failed: ${e.message}`); }
+      }
+
       try {
         // JSON-LD is in static HTML — domcontentloaded is sufficient and much faster
         await page.goto(rec.productUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
         const html  = await page.content();
         const crumbs = extractBreadcrumb(html);
+
+        // Mark as checked regardless of outcome so a resumed run does not
+        // re-scrape this record. Success sets franchise too; failures just carry
+        // the marker so they aren't retried every run.
+        enriched[idx].franchiseChecked = true;
 
         if (!crumbs || crumbs.length < 3) {
           console.log('no breadcrumb');
@@ -1811,14 +2061,19 @@ async function passFunkoDetails(enriched, opts) {
       } catch (err) {
         console.log(`error: ${err.message.slice(0, 50)}`);
         errors++;
+        // NOTE: do NOT mark franchiseChecked on a thrown error (network/timeout) —
+        // these are transient and SHOULD be retried on the next run. Only the
+        // clean "no breadcrumb"/"no franchise" outcomes above are marked.
       }
 
       await sleep(opts.funkoDetailDelay);
     }
   } finally {
     await browser.close();
+    // Final save to persist the last partial batch of franchise enrichments.
+    try { fs.writeFileSync(path.resolve(opts.output), JSON.stringify(enriched), 'utf8'); }
+    catch (e) { console.log(`  [warn] final save failed: ${e.message}`); }
   }
-
   console.log(`  Enriched: ${enrichedCount} | Not found: ${notFound} | Errors: ${errors}`);
   return { enriched: enrichedCount, notFound, errors };
 }
@@ -1848,6 +2103,7 @@ function dedupeAndMerge(enriched) {
 
   enriched.forEach((rec, i) => {
     if (!rec.funkoSource) return; // only process funko.com additions
+    if (rec.funkoSource === 'pricecharting') return; // handled separately below
     const normTitle = normaliseTitle(rec.title);
     const hobbyIdx = hobbyIndex.get(normTitle);
     if (hobbyIdx === undefined) { kept++; return; }
@@ -1873,10 +2129,100 @@ function dedupeAndMerge(enriched) {
     merged++;
   });
 
+  // ── PriceCharting dedup ─────────────────────────────────────────────────────
+  // Pass 3b adds PriceCharting records as new (it can't match mid-crawl because
+  // PriceCharting titles look very different — "Shaak Ti #853" vs catalog
+  // "Shaak Ti"). Here, with funkoNumber populated and titles cleaned, match each
+  // PriceCharting record to an existing canonical record by funkoNumber +
+  // CORE NAME (title stripped of #number, [brackets], (variant parens) and
+  // accessory suffixes). On match, merge PriceCharting data in (fill-only) and
+  // drop the duplicate. This is strictly safe: it only merges when the cleaned
+  // names agree, so distinct variants are never collapsed.
+  const pcDecode = s => (s || '')
+    .replace(/&amp;/gi, '&').replace(/&quot;/gi, '"').replace(/&#39;/g, "'")
+    .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>');
+  const coreName = t => pcDecode(t).toLowerCase()
+    .replace(/#\s*\d+[a-z]?/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\b(bottle opener|box|pop! protector)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+  const coreNoParens = t => coreName(String(t || '').replace(/\([^)]*\)/g, ' '));
+  const numOf = r => {
+    // Check all three sources: the verified funkoNumber field, the
+    // funkoNumberFromTitle field that extractNumbersFromTitles populates (it
+    // STRIPS "#nnn" from the title into this field, so by the time dedup runs the
+    // title no longer carries it), and finally any "#nnn" still in the title.
+    if (r.funkoNumber !== undefined && r.funkoNumber !== null && r.funkoNumber !== '')
+      return String(r.funkoNumber).replace(/^0+/, '') || '0';
+    if (r.funkoNumberFromTitle !== undefined && r.funkoNumberFromTitle !== null && r.funkoNumberFromTitle !== '')
+      return String(r.funkoNumberFromTitle).replace(/^0+/, '') || '0';
+    const m = /#\s*(\d+)/.exec(r.title || '');
+    return m ? String(parseInt(m[1], 10)) : '';
+  };
+  const shareAllShortTokens = (a, b) => {
+    const ta = a.split(' ').filter(Boolean), tb = b.split(' ').filter(Boolean);
+    if (!ta.length || !tb.length) return false;
+    const [short, longSet] = ta.length <= tb.length ? [ta, new Set(tb)] : [tb, new Set(ta)];
+    if (short.length < 2) return false;
+    return short.every(t => longSet.has(t));
+  };
+
+  // Index canonical (non-PriceCharting, not-yet-removed) records by funkoNumber.
+  const canonicalByNum = new Map();
+  enriched.forEach((r, i) => {
+    if (r.funkoSource === 'pricecharting' || toRemove.has(i)) return;
+    const n = numOf(r);
+    if (n) { if (!canonicalByNum.has(n)) canonicalByNum.set(n, []); canonicalByNum.get(n).push(i); }
+  });
+
+  let pcMerged = 0, pcKept = 0;
+  enriched.forEach((rec, i) => {
+    if (rec.funkoSource !== 'pricecharting' || toRemove.has(i)) return;
+    const n = numOf(rec);
+    const core = coreName(rec.title), coreNP = coreNoParens(rec.title);
+    let matchIdx = -1;
+    if (n && canonicalByNum.has(n)) {
+      for (const ci of canonicalByNum.get(n)) {
+        if (toRemove.has(ci)) continue;
+        const c = coreName(enriched[ci].title), cnp = coreNoParens(enriched[ci].title);
+        // Require BOTH the funkoNumber (already matched by the byNum bucket) AND
+        // a name agreement: exact core-name match, paren-stripped match, or — only
+        // as a fallback — full short-token containment. Number-alone is NOT enough
+        // (two different Pops can share a number across lines), which prevents a
+        // wrong merge that would silently drop the PriceCharting record's data.
+        if (c === core || cnp === coreNP || c === coreNP || cnp === core ||
+            shareAllShortTokens(core, c)) { matchIdx = ci; break; }
+      }
+    }
+    if (matchIdx === -1) { pcKept++; return; }  // genuinely new PriceCharting Pop
+
+    const tgt = enriched[matchIdx];
+    // Copy every PriceCharting-derived field the scraper can populate. The earlier
+    // list omitted several (pcSeries — needed for franchiseSuggestion — plus
+    // amazonAsin/printRun/publisher/pcDescription) and used the wrong name 'epid'
+    // for what the scraper stores as 'ebayEpid', so those were silently dropped on
+    // merge. Fill-only: never overwrite a non-empty value already on the canonical.
+    for (const f of ['pricechartingId','pricechartingUrl','marketValueLoose',
+                     'marketValueComplete','marketValueNew','upc','releaseDate',
+                     'ebayEpid','amazonAsin','printRun','publisher','pcDescription',
+                     'pcSeries','funkoNumber',
+                     // Done-markers: carry these onto the survivor so a later run
+                     // doesn't re-scrape a record just because dedup collapsed the
+                     // copy that held the marker. Efficiency only — never affects
+                     // correctness, only avoids redundant network work.
+                     'hdbChecked','franchiseChecked','hdbid','priceCheckedAt']) {
+      if (rec[f] && (tgt[f] === undefined || tgt[f] === null || tgt[f] === '')) tgt[f] = rec[f];
+    }
+    toRemove.add(i);
+    pcMerged++;
+  });
+
   // Rebuild array without removed indices
   const deduped = enriched.filter((_, i) => !toRemove.has(i));
   console.log(`  Merged into HobbyDB records: ${merged}`);
   console.log(`  funko.com-only new records:  ${kept}`);
+  console.log(`  PriceCharting merged into existing: ${pcMerged}`);
+  console.log(`  PriceCharting-only new records:     ${pcKept}`);
   console.log(`  Records removed (dupes):     ${toRemove.size}`);
   return deduped;
 }
@@ -2320,21 +2666,32 @@ async function main() {
     if (fs.existsSync(outPath)) {
       try {
         const outData = JSON.parse(fs.readFileSync(outPath, 'utf8'));
-        // Resume only if the prior output actually carries ENRICHMENT — i.e. some
-        // records have been HobbyDB-checked or priced or PriceCharting-discovered.
-        // NOTE: do NOT compare output length to base length. The output is
-        // intentionally SMALLER than the base (~16k vs base ~24k) because
-        // post-process removes non-Pops and merges duplicates; a size test would
-        // wrongly reject a perfectly good enriched file and restart from scratch.
-        const enrichedCount = outData.reduce((n, r) =>
-          n + ((r.hdbChecked || r.marketValueComplete || r.marketValueLoose ||
-                r.pricechartingId || r.upc) ? 1 : 0), 0);
-        if (outData.length > 0 && enrichedCount > 0) {
-          console.log(`Resuming from prior output (${outData.length} records, ${enrichedCount} already enriched) to advance the backlog.`);
-          console.log(`  (pass --input ${opts.input} explicitly to force a fresh build from base.)`);
-          inputPath = outPath;
+        if (!Array.isArray(outData)) {
+          console.log(`  (prior output is not a JSON array — building from base.)`);
         } else {
-          console.log(`Prior output has no enrichment markers — building from base.`);
+          // Resume only if the prior output actually carries ENRICHMENT — i.e. some
+          // records have been HobbyDB-checked or priced or PriceCharting-discovered.
+          // NOTE: do NOT compare output length to base length. The output is
+          // intentionally SMALLER than the base (~16k vs base ~24k) because
+          // post-process removes non-Pops and merges duplicates; a size test would
+          // wrongly reject a perfectly good enriched file and restart from scratch.
+          const enrichedCount = outData.reduce((n, r) =>
+            n + ((r && (r.hdbChecked || r.marketValueComplete || r.marketValueLoose ||
+                  r.pricechartingId || r.upc)) ? 1 : 0), 0);
+          if (outData.length > 0 && enrichedCount > 0) {
+            console.log(`Resuming from prior output (${outData.length} records, ${enrichedCount} already enriched) to advance the backlog.`);
+            console.log(`  (pass --input ${opts.input} explicitly to force a fresh build from base.)`);
+            inputPath = outPath;
+          } else {
+            // A valid-but-tiny/empty output here is suspicious if it exists at all
+            // — most likely a truncated checkpoint. Warn rather than silently
+            // discarding what might have been real progress.
+            console.log(`Prior output has no enrichment markers (${outData.length} records) — building from base.`);
+            if (outData.length > 0) {
+              console.log(`  [warn] output exists but looks unenriched/partial; if this is`);
+              console.log(`  unexpected, check for a *.pre-dedupe.* backup before continuing.`);
+            }
+          }
         }
       } catch (e) {
         console.log(`  (could not read prior output, building from base: ${e.message})`);
@@ -2346,7 +2703,21 @@ async function main() {
     process.exit(1);
   }
   console.log(`Loading: ${inputPath}`);
-  const existingData = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+  let existingData;
+  try {
+    existingData = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+  } catch (e) {
+    console.error(`\nFailed to parse ${path.basename(inputPath)}: ${e.message}`);
+    console.error(`The file is likely corrupted or truncated (e.g. a checkpoint`);
+    console.error(`write was interrupted). Options:`);
+    console.error(`  • restore from a *.pre-dedupe.* or prior backup if present, or`);
+    console.error(`  • run with --input funko_data.json to rebuild from the base.`);
+    process.exit(1);
+  }
+  if (!Array.isArray(existingData)) {
+    console.error(`\n${path.basename(inputPath)} did not contain a JSON array. Aborting.`);
+    process.exit(1);
+  }
   console.log(`  ${existingData.length} existing records`);
 
   // Sanitise titles in base data on load
@@ -2428,7 +2799,12 @@ async function main() {
   const handleMerged = mergeDuplicateHandles(enriched);
   enriched.length = 0; enriched.push(...handleMerged);
 
-  // 3. Dedup funko.com additions against the now-clean HobbyDB records
+  // 2b. Extract Pop# from titles BEFORE dedup, so funkoNumber is populated on
+  //     PriceCharting records (parsed from "#nnn") and the dedup step can use it
+  //     as the strong join key when matching them to canonical records.
+  extractNumbersFromTitles(enriched);
+
+  // 3. Dedup funko.com + PriceCharting additions against the clean HobbyDB records
   const deduped = dedupeAndMerge(enriched);
   enriched.length = 0; enriched.push(...deduped);
 
@@ -2437,9 +2813,6 @@ async function main() {
   //     reorder this should remove ~nothing from the HobbyDB side.
   const cleaned2 = removeNonPops(enriched);
   enriched.length = 0; enriched.push(...cleaned2);
-
-  // 4. Extract Pop# from titles and clean dirty prices
-  extractNumbersFromTitles(enriched);
 
   // 5. Derive collection-grouping fields (setTag, franchiseSuggestion) LAST, over
   //    the final clean record set, so the series-tag frequency map and console

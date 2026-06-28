@@ -4,6 +4,58 @@ Notable changes to the enricher pipeline. Most recent first.
 
 ---
 
+## PriceCharting dedup rework + deep-scan hardening — 2026-06-22
+
+Pass 3b previously tried to recognise already-owned Pops mid-crawl, but
+PriceCharting titles ("Shaak Ti #853") differ too much from catalog titles
+("Shaak Ti") for reliable matching during the scrape, so it re-added thousands of
+duplicates. Reworked so Pass 3b just downloads-and-adds, and all catalog-level
+deduplication happens in post-process where the fields are fully populated.
+
+### Changed
+
+- **Pass 3b is now download-and-add only.** Removed the fragile in-crawl matcher;
+  it dedupes only by pricechartingId (within/across runs). Simpler and more robust.
+- **`dedupeAndMerge` now also collapses PriceCharting duplicates**, matching each
+  PriceCharting record to an existing canonical record by funkoNumber + CORE NAME
+  (title stripped of "#nnn", [brackets], (variant parens), HTML entities and
+  accessory suffixes). Fill-only and conservative: requires both the number AND a
+  name agreement, so distinct Pops that merely share a number are never collapsed.
+- **Post-process reordered** so `extractNumbersFromTitles` runs before
+  `dedupeAndMerge`, populating funkoNumber on both sides for the match key.
+
+### Fixed (deep scan)
+
+- **Dedup silently matched nothing (critical).** `extractNumbersFromTitles` strips
+  "#nnn" from the title into `funkoNumberFromTitle`, but the dedup's number lookup
+  only checked `funkoNumber` and the (now-stripped) title, so it found no number
+  and merged nothing. Number lookup now also reads `funkoNumberFromTitle`.
+- **Listing-row id fallback collided across products.** When the real PriceCharting
+  id attribute was absent, the parser used `href.split('-').pop()` — the trailing
+  Funko number (".../shaak-ti-853" → "853"), which repeats across lines and
+  corrupted the pcId dedupe. Now falls back to the full unique product slug.
+- **Merged records lost PriceCharting fields.** The dedup merge list used the wrong
+  name `epid` (scraper stores `ebayEpid`) and omitted `pcSeries` (needed for
+  franchiseSuggestion), `amazonAsin`, `printRun`, `publisher`, `pcDescription`.
+  Now copies every field the scraper produces.
+- **Malformed numeric flags silently disabled a pass.** `--hdb-limit abc` yielded
+  NaN, making `.slice(0, NaN)` return zero candidates. Numeric flags now validate
+  and fall back to the default with a warning.
+- **Corrupted/truncated input crashed cryptically.** The main input parse and the
+  resume read are now guarded with clear recovery messages and array-shape /
+  null-element validation — relevant when a checkpoint write was interrupted.
+
+### Other tuning
+
+- Pass 4 checkpoints every 100 records (was 10) and writes unindented JSON, cutting
+  cumulative checkpoint I/O ~20x on a full run (crash still loses ≤100 records).
+- Pass 5 marks `franchiseChecked` on clean outcomes so a resumed run skips them
+  (transient errors are left unmarked to retry); avoids re-scraping ~2,000 records
+  every run. Pass 3b scroll confirms stability with an extra long-wait pass to
+  avoid truncating a large set on a slow connection.
+
+---
+
 ## Pass 3b: load full set contents via scroll (was capped at ~150/set) — 2026-06-22
 
 ### Fixed

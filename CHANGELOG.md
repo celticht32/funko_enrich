@@ -70,6 +70,8 @@ levers to Pass 3, and recording price provenance so the app can fill the gap.
   Pop-signal check. Writes a new `*.clean.json`; leaves the original intact; prints
   a removal report. Note: FunkO's cereal, advent calendars, and collectors boxes
   each bundle an exclusive figure and are KEPT.
+- **`stamp_pricesource.js`** — adds the `priceSource` flag to an already-enriched
+  file in a local pass (no re-run), for when a build predates the flag's addition.
 
 ### Coverage at session end
 

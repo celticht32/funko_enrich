@@ -281,6 +281,8 @@ guessing at structure — request the page, verify against it, then fix.
   failures down by fixable lever (UPC / number / parser / title-only) + verdict.
 - `clean_nonfigures.js` — removes pure non-figure merch by exact title (Pop-signal
   protected); writes a `*.clean.json`, leaves original intact.
+- `stamp_pricesource.js` — adds the `priceSource` flag ('pricecharting'|'none') to
+  an already-enriched file without re-running the pipeline (local pass, ~2s).
 - `export-community-delta.js` — community UPC delta export.
 - `funko_data.json` — base input. `funko_data_enriched.json` — output.
 - `test_*.js`, `dump-hdb.js`, `fix_typo.js` — one-off probes/utilities.

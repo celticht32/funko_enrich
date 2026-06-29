@@ -76,6 +76,15 @@ Both are suggestions; the app's user-assigned franchise is authoritative. Added 
 
 ## PriceCharting matching — the heart of Pass 3
 
+**Match order (Pass 3, per record):** (1) UPC-first — if the record has a usable
+UPC, query PriceCharting by UPC; an exact Funko row is taken directly (the
+confidence gate TRUSTS a UPC match, skipping the name check). (2) Title search with
+the funko number appended ("name #NN") — number disambiguates same-named figures;
+rows are scored and gated by `pcMatchConfident`. Many Funko UPCs are NOT in
+PriceCharting's index, so UPC-first often falls through to title — that is expected,
+not a bug. Items PC cannot price get `priceSource:'none'` (app fills via live tiers
+on add).
+
 Cross-database variant matching is the hard part. Our catalog and PriceCharting
 name variants differently, and a wrong-variant price is worse than no price (a
 chase can be worth far more than the common figure). So Pass 3 is deliberately
@@ -152,6 +161,7 @@ now the most complete build, not a partial one:
 | `pcLimit`      | 500 | **100000**    | `--pc-limit N`       |
 | `hdbLimit`     | 200 | **1000000** (uncapped) | `--hdb-limit N` |
 | `pcCrawlLimit` | —   | **Infinity**  | `--pc-crawl-limit N` |
+| `repriceOlderThan` | — | **0 (off)** | `--reprice-older-than N` (days) |
 
 Pass 3b is the ONLY pass that grows the record set beyond Kenny Chan + funko.com,
 so it stays on for the master. **Resume behaviour:** with the caps now uncapped one
@@ -267,6 +277,10 @@ guessing at structure — request the page, verify against it, then fix.
 - `enrich.js` — the pipeline (all passes + post-processing).
 - `enrich_README.md` — user run guide (publish as `README.md`).
 - `check_test_output.js` — audit script for an output file.
+- `pc_match_diagnostic.js` — read-only match-rate diagnostic; breaks unpriced
+  failures down by fixable lever (UPC / number / parser / title-only) + verdict.
+- `clean_nonfigures.js` — removes pure non-figure merch by exact title (Pop-signal
+  protected); writes a `*.clean.json`, leaves original intact.
 - `export-community-delta.js` — community UPC delta export.
 - `funko_data.json` — base input. `funko_data_enriched.json` — output.
 - `test_*.js`, `dump-hdb.js`, `fix_typo.js` — one-off probes/utilities.

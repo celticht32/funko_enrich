@@ -3,6 +3,84 @@
 Notable changes to the enricher pipeline. Most recent first.
 
 ---
+## Crawl completeness + match-rate + price provenance — 2026-06-28
+
+A long session driven by a full golden-master rebuild. Three themes: making Pass 3b
+crawl *verifiably complete* (it was silently truncating big sets), adding match
+levers to Pass 3, and recording price provenance so the app can fill the gap.
+
+### Pass 3b — crawl completeness (the big fix)
+
+- **Target-count-driven scrolling.** Sets were truncating at the initial ~150-row
+  page (Marvel loaded 1050 of its real 1904; Rocks 150 of 520) because the scroll
+  accepted "row count stopped changing" as done. Now it reads PriceCharting's own
+  stated total ("Prices for all N Funko … Figures" / "N items") and scrolls until
+  the loaded count reaches it — deterministic, not timing-dependent. Falls back to
+  stability detection only when no target is on the page.
+- **Completeness gate.** A set is marked DONE (added to the sidecar, skipped on
+  resume) only if it actually loaded acceptably — reached its stated target, or had
+  no target but loaded >0 rows. A set that loads 0 rows or stalls well short is left
+  UNMARKED and retries next run, with a `set NOT marked done (…)` message. Fixes the
+  silent-skip where a transient empty page (Disney loaded 0) or a stall (Games 300
+  of 1219) was wrongly marked complete.
+- **Retry-on-empty.** When a set's page comes back blank (0 rows AND no target text
+  — observed intermittently on digital/asia/wwe-covers), restart the browser and
+  re-fetch up to 3 times before giving up. Targets PriceCharting serving an empty/
+  blocked body for a set this session.
+
+### Pass 3 / Pass 5 — crash safety + memory
+
+- Pass 3 (pricing) checkpoints every 100 records (resume skips already-priced) and
+  restarts the browser every 200 (memory over tens of thousands of page loads).
+- Pass 5 checkpoints every 100 with a `franchiseChecked` marker.
+
+### Pass 3 — match-rate levers
+
+- **UPC-first match path.** When a record has a usable UPC, query PriceCharting by
+  UPC first (their search resolves a UPC to the exact product). A single Funko row
+  is taken as an exact-key match; multiple rows are title-scored among them; zero
+  rows falls through to the unchanged title search. The confidence gate TRUSTS a
+  UPC match (skips the name/variant check) since the barcode is exact — this is what
+  lets it rescue oddly-named figures the title gate would reject. NOTE: many Funko
+  UPCs are simply not in PriceCharting's index (verified: Freddy Frostbear UPC
+  returns "No results"), so the real yield is a fraction of UPC-bearing failures.
+- **Funko number in the search query.** `pcSearchQuery` now appends the record's
+  funko number ("Twinkie the Kid #31 funko") — PriceCharting matches "name #NN" and
+  the number disambiguates same-named figures. Scoring still picks the final row.
+
+### Maintenance / provenance
+
+- **`priceCheckedAt`** (ISO date) stamped on each priced record, enabling
+  **`--reprice-older-than <days>`** to refresh aging prices on a later run (default
+  off — priced records are otherwise permanent).
+- **`dedupeAndMerge` now carries done-markers** (`hdbChecked`, `franchiseChecked`,
+  `hdbid`, `priceCheckedAt`) onto the surviving record, so collapsing duplicates no
+  longer causes re-scraping on the next run.
+- **`priceSource` flag** stamped at final write: `'pricecharting'` when a real PC
+  price is present, `'none'` when PC could not price it. The app uses `'none'` to
+  decide whether to fill via its live tiers (on ADD, per the FunkoDex spec).
+
+### New tools
+
+- **`pc_match_diagnostic.js`** — read-only; breaks unpriced failures down by what
+  would fix them (UPC / number / parser / title-only) and prints a verdict on which
+  lever is highest-impact. Run after a build.
+- **`clean_nonfigures.js`** — removes only pure non-figure merch (socks, drinkware,
+  passport, poster, card games, Rock'em Sock'em) by EXACT title, protected by a
+  Pop-signal check. Writes a new `*.clean.json`; leaves the original intact; prints
+  a removal report. Note: FunkO's cereal, advent calendars, and collectors boxes
+  each bundle an exclusive figure and are KEPT.
+
+### Coverage at session end
+
+~25,806 records (down from 45,607 raw via dedup), ~76% priced by PriceCharting. The
+unpriced tail is dominated by items PriceCharting genuinely does not carry (non-
+figure merch, convention/exclusive variants, multi-character packs, obscure
+variants) — a data-availability ceiling, not a matcher weakness. The app's live
+tiers (eBay etc.) close part of the rest per-item on add.
+
+---
+
 
 ## PriceCharting dedup rework + deep-scan hardening — 2026-06-22
 

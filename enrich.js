@@ -696,12 +696,24 @@ const PC_DELAY       = 1100; // ms between PriceCharting requests — be polite
  * to Pops. Example:
  *   "Twinkie The Kid (Glow In The Dark) (Logo Bandana)" → "Twinkie The Kid funko"
  */
-function pcSearchQuery(title) {
-  return (title || '')
+function pcSearchQuery(rec) {
+  // Accept either a record or a bare title string (back-compat).
+  const title = typeof rec === 'string' ? rec : (rec && rec.title) || '';
+  const num = typeof rec === 'object' && rec
+    ? String(rec.funkoNumber || rec.funkoNumberFromTitle || '').replace(/[^0-9]/g, '')
+    : '';
+  const base = title
     .replace(/[\(\[][^\)\]]*[\)\]]/g, ' ')   // remove (...) and [...] qualifiers
     .replace(/#\s*\d+/g, ' ')                // remove "#27"
     .replace(/\s+/g, ' ')
-    .trim() + ' funko';
+    .trim();
+  // PriceCharting's search matches "name #NN" (their own docs show "charizard
+  // #4" as an example query), and the number is a strong disambiguator among
+  // same-named figures. Append it when we have a clean one. Scoring still picks
+  // the final row, so a stray number only reorders results, it doesn't force a
+  // wrong match through the confidence gate.
+  const q = num ? `${base} #${num}` : base;
+  return q + ' funko';
 }
 
 /**
@@ -766,6 +778,18 @@ function scorePcRow(row, rec) {
  * Returns { ok, reason }.
  */
 function pcMatchConfident(row, rec) {
+  // UPC match: the barcode is an exact product key and PriceCharting already
+  // resolved it to this product, so we trust it directly. This is the whole point
+  // of the UPC-first path — it rescues figures whose NAMES differ enough that the
+  // title-based gate below would (correctly, for title matches) reject them, e.g.
+  // multi-character 2-packs or oddly-named variants. A single-row UPC hit is exact;
+  // a multi-row UPC hit already had title scoring applied to pick among same-UPC
+  // rows, so it's still UPC-grounded. We do NOT mark these approximate — the UPC
+  // identifies the exact product, so its price is the exact price.
+  if (row._matchedBy === 'upc' || row._matchedBy === 'upc-multi') {
+    return { ok: true, reason: `upc match (${row._matchedBy})`, approximate: false };
+  }
+
   const wantTokens = variantTokens(rec.title);
   const rowTokens  = variantTokens(row.name);
 
@@ -856,8 +880,48 @@ function coreNameCovered(recTitle, rowName) {
  * Returns a row object or null.
  */
 async function searchPriceCharting(page, rec) {
+  // ── UPC-first path ─────────────────────────────────────────────────────────
+  // UPC is an exact product key. PriceCharting's search box accepts a UPC and
+  // resolves it to the matching product, so when the record carries a usable
+  // barcode we try that FIRST — it converts many title-search failures (variant
+  // 2-packs, oddly-named figures) into confident matches. If the UPC search
+  // yields a Funko row we take it; otherwise we fall through to the title search
+  // below, which is unchanged. Only valid 12/13-digit barcodes are attempted
+  // (normalizeUpc returns null otherwise), so this adds at most one extra fetch
+  // and only for records that have a real UPC.
+  const upc = normalizeUpc(rec.upc);
+  if (upc) {
+    try {
+      const upcUrl = PC_HTML_SEARCH(upc);
+      await page.goto(upcUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      const upcHtml = await page.content();
+      let upcRows = parsePriceChartingListing(upcHtml).filter(r => /^funko-pop-/.test(r.console || ''));
+      // A UPC search ideally resolves to exactly one product. If it returns
+      // multiple Funko rows, the UPC was ambiguous on PC's side — fall back to
+      // title scoring among them rather than guessing. If exactly one, that's the
+      // exact-key match; accept it directly.
+      if (upcRows.length === 1) {
+        upcRows[0]._matchedBy = 'upc';
+        return upcRows[0];
+      }
+      if (upcRows.length > 1) {
+        let best = null, bestScore = -1e9;
+        upcRows.forEach((row, i) => {
+          const s = scorePcRow(row, rec) - i * 0.01;
+          if (s > bestScore) { bestScore = s; best = row; }
+        });
+        if (best) { best._matchedBy = 'upc-multi'; return best; }
+      }
+      // upcRows.length === 0 → UPC not in PC's database; fall through to title.
+      await sleep(PC_DELAY);  // polite gap between the UPC fetch and the title fetch
+    } catch (err) {
+      // UPC attempt failed (timeout/parse) — fall through to title search.
+    }
+  }
+
+  // ── Title path (unchanged) ─────────────────────────────────────────────────
   try {
-    const url = PC_HTML_SEARCH(pcSearchQuery(rec.title));
+    const url = PC_HTML_SEARCH(pcSearchQuery(rec));
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     const html = await page.content();
     let rows = parsePriceChartingListing(html);
@@ -1124,6 +1188,8 @@ async function passPriceCharting(enriched, opts) {
         // existed simply have no timestamp and are treated as "stale" by the
         // reprice filter (so they get refreshed once, then carry a date forward).
         priceCheckedAt:   new Date().toISOString(),
+        priceSource:      'pricecharting',  // a real PC price was found; the app's
+                                            // live tiers don't need to fill this.
       };
       if (loose)    updates.marketValueLoose    = loose;
       if (complete) updates.marketValueComplete = complete;
@@ -2818,6 +2884,24 @@ async function main() {
   //    the final clean record set, so the series-tag frequency map and console
   //    reads reflect post-merge/post-removal data.
   deriveGroupingFields(enriched);
+
+  // 6. Mark price provenance. Records PriceCharting could not price are flagged
+  //    priceSource:'none' so the FunkoDex app knows to auto-try its live price
+  //    tiers (eBay sold, etc.) on display — by UPC when present, by title
+  //    otherwise. Records that already carry a priceSource (set when a PC price
+  //    was applied) are left as-is.
+  let pricedCount = 0, pendingCount = 0;
+  for (const r of enriched) {
+    const hasPrice = !!(r.marketValueLoose || r.marketValueComplete || r.marketValueNew);
+    if (hasPrice) {
+      if (!r.priceSource) r.priceSource = 'pricecharting';
+      pricedCount++;
+    } else {
+      r.priceSource = 'none';   // app: try live tiers on view
+      pendingCount++;
+    }
+  }
+  console.log(`  priceSource: ${pricedCount} priced, ${pendingCount} pending (app live-tier fill)`);
 
   // Write output
   const outputPath = path.resolve(opts.output);

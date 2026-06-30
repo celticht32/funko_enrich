@@ -147,6 +147,27 @@ function sanitiseTitle(t) {
   return (t || '').replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * HobbyDB CDN image filenames encode the media category, e.g.
+ *   .../image/479339/Thumper_Pins_and_Badges_8505845b-...large.jpg
+ *   .../image/798686/Maid_Vinyl_Art_Toys_ad190664-...png
+ * When a character has both a Pop figure and merch (pin, keychain, plush, PEZ,
+ * shirt) under the same name, HobbyDB sometimes returns the MERCH photo for the
+ * figure record. Storing that gives the figure a pin/keychain image (the
+ * "Thumper shows a pin" bug). This rejects URLs whose media token is a known
+ * non-figure category, so a wrong image is never stored — the record keeps an
+ * empty imageName (placeholder) instead, which is preferable to a wrong image.
+ *
+ * Denylist (not allowlist) so new figure media tokens HobbyDB may introduce are
+ * not accidentally rejected. Returns true if the URL is acceptable (figure or
+ * unknown), false if it is a recognised non-figure image.
+ */
+const NON_FIGURE_MEDIA = /_(Pins_and_Badges|Keychains|Plush_Toys|PEZ_Dispensers|Pens|Shirts_and_Jackets|Coin_Banks|Uniform_Patches|Bags|Wallets|Lanyards|Mugs|Posters|Apparel)_[0-9a-f]{6,}/i;
+function isFigureImage(url) {
+  if (!url) return false;               // nothing to store
+  return !NON_FIGURE_MEDIA.test(url);   // accept unless a known non-figure token
+}
+
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /**
@@ -343,9 +364,11 @@ async function passKennyChan(enriched, titleIndex, handleIndex) {
     const idx = findIndex(handle, title, handleIndex, titleIndex);
 
     if (idx !== -1) {
-      // Existing record — fill image if missing (Kenny uses same HobbyDB CDN)
+      // Existing record — fill image if missing (Kenny uses same HobbyDB CDN).
+      // Skip non-figure images (pins/keychains/plush) so we never overwrite an
+      // empty imageName with a merch photo.
       const existing = enriched[idx];
-      if (rec.image && !existing.imageName) {
+      if (rec.image && !existing.imageName && isFigureImage(rec.image)) {
         enriched[idx] = { ...existing, imageName: rec.image };
         enrichedCount++;
       }
@@ -356,7 +379,7 @@ async function passKennyChan(enriched, titleIndex, handleIndex) {
       const newRec = {
         handle:    handle || normTitle.replace(/\s+/g, '-'),
         title:     sanitiseTitle(title),
-        imageName: rec.image || '',
+        imageName: isFigureImage(rec.image) ? rec.image : '',
         series:    rec.series || [],
         kennySource: true,
       };

@@ -20,7 +20,11 @@ independently skippable so a run can target just the work that's needed.
 ### Passes (in `enrich.js`)
 
 - **Pass 1 — Kenny Chan merge** (`passKennyChan`): merges the Kenny Chan GitHub
-  Funko dataset into the catalog by handle/title.
+  Funko dataset into the catalog by handle/title. Image URLs from this source
+  (HobbyDB CDN) are filtered through `isFigureImage()` (S17) — non-figure media
+  (pins/keychains/plush/PEZ/shirts; see `NON_FIGURE_MEDIA`) is rejected so a figure
+  record never inherits a merch photo (the "Thumper shows a pin" bug). Rejected →
+  `imageName` left empty (placeholder), not a wrong image.
 - **Pass 2 — funko.com scrape** (`passFunkoCom`): Puppeteer + stealth scrape of
   funko.com for catalog data.
 - **Pass 3 — PriceCharting market values** (`passPriceCharting`): the core

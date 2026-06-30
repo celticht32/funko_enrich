@@ -3,6 +3,40 @@
 Notable changes to the enricher pipeline. Most recent first.
 
 ---
+## Non-figure image filter — 2026-06-29
+
+HobbyDB CDN image filenames encode the media category
+(`Thumper_Pins_and_Badges_…jpg` vs `Maid_Vinyl_Art_Toys_…png`). When a character
+has both a Pop figure and merch (pin, keychain, plush, PEZ, shirt) under one name,
+HobbyDB sometimes returns the MERCH photo for the figure record — giving the figure
+a pin/keychain image (the "Thumper shows a pin" bug). In the live catalog ~1,400 of
+~22,000 records had a non-figure image; 4 of the user's owned items inherited one.
+
+### Added
+
+- **`isFigureImage(url)` helper** + `NON_FIGURE_MEDIA` denylist
+  (`Pins_and_Badges|Keychains|Plush_Toys|PEZ_Dispensers|Pens|Shirts_and_Jackets|`
+  `Coin_Banks|Uniform_Patches|Bags|Wallets|Lanyards|Mugs|Posters|Apparel`). Wired
+  into BOTH image-assignment points in the Kenny/HobbyDB merge (existing-record fill
+  ~L348 and new-record creation ~L359): a URL whose media token is a known
+  non-figure type is rejected, so `imageName` stays empty (placeholder) rather than
+  storing a wrong image. Denylist (not allowlist) so new figure media tokens HobbyDB
+  may introduce aren't accidentally rejected. The figure media type is
+  `Vinyl_Art_Toys` (~7,500 of the catalog); `Action_Figures` and the
+  `*_Vinyl_Art_Toys` variants also pass.
+
+### Notes
+
+- Verified: `node -c` clean + a 9-case filter unit test (catches Thumper/Apprentice
+  Mickey pins, passes Maid/Goku-prototype/Action-Figures/Funko-glam). NOT run as a
+  live enrichment (per project rule — cannot run the pipeline here).
+- This stops NEW bad images entering. It does not retroactively fix the ~1,400
+  already in a built catalog — those clear on a fresh full enrichment, or via the
+  one-time image-clear applied to the S17 repaired backup (FunkoDex side). For
+  release, a full re-enrichment with this filter is the realistic way to repopulate
+  correct figure images at catalog scale.
+
+---
 ## Crawl completeness + match-rate + price provenance — 2026-06-28
 
 A long session driven by a full golden-master rebuild. Three themes: making Pass 3b

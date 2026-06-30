@@ -1,6 +1,6 @@
 # funko_enrich — Handoff
 
-**Date:** 2026-06-20
+**Date:** 2026-06-29
 **Repo:** github.com/celticht32/funko_enrich
 **Local:** C:\Downloads\Development\funko_enrich\
 
@@ -8,6 +8,22 @@ Node.js + Puppeteer pipeline that builds/enriches a Funko Pop catalog
 (`funko_data_enriched.json`) the FunkoDex Android app imports. Separate project
 from the app. See `CLAUDE.md` for the full pipeline description and `README.md`
 (`enrich_README.md`) for the run guide.
+
+---
+
+## Latest (2026-06-29) — non-figure image filter
+
+Added `isFigureImage(url)` + `NON_FIGURE_MEDIA` denylist, wired into both
+image-assignment points in the Kenny/HobbyDB merge (~L348 existing-record fill,
+~L359 new-record creation). HobbyDB sometimes returns a merch photo (pin/keychain/
+plush/PEZ/shirt) for a figure record — the filter rejects those by the media token
+in the CDN filename, leaving `imageName` empty (placeholder) instead of storing a
+wrong image. Denylist not allowlist (figure type is `Vinyl_Art_Toys`, ~7.5k records;
+don't reject unknown future figure tokens). Verified `node -c` + 9-case unit test;
+NOT run as a live enrichment. Stops NEW bad images; ~1,400 already in a built catalog
+need a fresh full enrichment to repopulate (or were cleared in the FunkoDex S17
+repaired backup). Release-prep: run a full enrichment with this filter before
+extracting the final golden master.
 
 ---
 

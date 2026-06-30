@@ -11,6 +11,31 @@ from the app. See `CLAUDE.md` for the full pipeline description and `README.md`
 
 ---
 
+## STATUS: COMPLETE (2026-06-29)
+
+funko_enrich is done. Pipeline at sources' ceiling. Verified in-session against
+`funko_data_enriched.json` (25,731 records):
+
+- **Pricing: 77% priced (19,920), at documented ceiling** (S16 ~76%, no regression).
+  Unpriced tail (5,811) is structural — boxes/prototypes/exclusives/signed that
+  PriceCharting doesn't carry — confirmed by Pass-3 skip distribution. All 5,811
+  correctly flagged `priceSource:'none'` for the app's on-add live fill.
+- **UPC: 80% (20,555).** Remaining lever: 1,296 priced-but-no-UPC (`--pc-fill-upc`).
+- **Images: debt CLOSED.** Of 10,477 empty-image records, 0 carry an unused `imageUrl`
+  source — 10,476 are pc-crawl (no source exists; structural), 1 HobbyDB-sourceless.
+  A rerun cannot change this. The earlier "~1,400 need re-enrichment" note is obsolete.
+- **Match correctness: spot-check clean** via `check_test_output.js` — 5/5 samples
+  point at correct figures (incl. C-3PO "Metallic Red" = PC "Red Eyes", confirmed
+  same figure).
+- **Pass-3 pricing run 2026-06-29:** skip distribution all correct buckets (not in PC /
+  different figure); small bucket-3 residue (Gohan/Hagrid paren-vs-bracket qualifier
+  misses) — known gate conservatism, not a defect. `Errors:0` pending run completion.
+
+Accepted limits unchanged: pc-crawl double-add risk; UPC "most, not all";
+pc-crawl records imageless by nature.
+
+---
+
 ## Latest (2026-06-29) — non-figure image filter
 
 Added `isFigureImage(url)` + `NON_FIGURE_MEDIA` denylist, wired into both
@@ -62,7 +87,7 @@ crawl run:
 - **Pass 3 (pricing)** works end to end: HTML-search → variant scoring →
   confidence gate → product-page price + metadata harvest. Verified parsers
   against real saved pages.
-- **Pass 3b (catalog crawl, `--pc-crawl`)** auto-discovers all ~29 Funko console
+- **Pass 3b (catalog crawl, `--pc-crawl`)** auto-discovers all ~109 Funko console
   sets and adds missing Pops, visiting each product page to harvest its UPC. A
   production chunk discovered **1000 new Pops, ~94% with UPCs** in one run.
 - **`--pc-fill-upc`** revisits already-priced records that lack a UPC to backfill
@@ -101,7 +126,7 @@ Imperial Palace, prototypes, box sets).
 
 1. **Scale the production crawl** in chunks (`--pc-crawl-limit`, raise
    `--pc-limit`). Resumable — priced+UPC'd records skip on re-runs. Full catalog
-   across all 29 sets with per-Pop UPC harvest is a multi-day job; run in chunks.
+   across all ~109 sets with per-Pop UPC harvest is a multi-day job; run in chunks.
 2. **Re-run the 200-item slice** with the approximate fallback and check the new
    `Found: N (M approximate)` line — that M is how many old skips were recovered.
    If M is small, the batch was genuinely unrecoverable and the gate was right.

@@ -136,6 +136,20 @@ Imperial Palace, prototypes, box sets).
 4. **Watch the uncertain count.** If it's high on a *mainstream* batch (not a
    variant-heavy slice), revisit the gate; on variant/merch-heavy slices a high
    skip rate is expected and correct.
+5. **`hasChase` derivation on base records (planned — build after the current
+   golden-master run finishes and is checked).** The catalog already carries
+   `isChase` on every record and flags Chase records true (~320 now). A cheap,
+   data-only post-process can derive a `hasChase` flag on the BASE record: group
+   records by `funkoNumber`; if any record in a group has `isChase:true`, set
+   `hasChase:true` on the non-Chase record(s) in that group. No new scraping —
+   uses signal already collected. On the current catalog ~212 funkoNumbers have
+   both a base and a Chase record (so ~212 bases would light up); more as the
+   catalog grows. Caveat: funkoNumber grouping isn't exhaustive — Chases with a
+   mismatched/absent number, or bases not yet in the catalog, won't pair up, so
+   `hasChase` is mostly-right, not complete. Build and verify against the FINAL
+   enriched file (the in-progress run adds many Chase records and changes the
+   counts). Powers the app-side "this figure has a Chase → do you have it? → add
+   to want list" flow (see FunkoDex roadmap).
 
 ---
 

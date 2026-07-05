@@ -144,7 +144,41 @@ function normaliseTitle(title) {
 
 /** Trim leading/trailing whitespace and collapse internal runs to single space */
 function sanitiseTitle(t) {
-  return (t || '').replace(/\s+/g, ' ').trim();
+  return decodeHtmlEntities(t || '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Decode the HTML entities that leak in from source titles that did NOT come
+ * through cheerio's .text() (Kenny Chan JSON, PriceCharting fields, raw
+ * attributes). In practice only &amp; appears (536 records: "X &amp; Y
+ * (2-Pack)"), but the others are handled defensively and cost nothing. Loops
+ * until stable so double-encoded input ("&amp;amp;" → "&amp;" → "&") fully
+ * collapses; the loop is bounded and terminates once no entity remains.
+ */
+function decodeHtmlEntities(s) {
+  if (!s || s.indexOf('&') === -1) return s || '';
+  let prev = s, out = decodeHtmlEntitiesOnce(s), guard = 0;
+  while (out !== prev && guard++ < 5) { prev = out; out = decodeHtmlEntitiesOnce(out); }
+  return out;
+}
+
+function decodeHtmlEntitiesOnce(s) {
+  return s
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&rsquo;/g, '\u2019')
+    .replace(/&lsquo;/g, '\u2018')
+    .replace(/&rdquo;/g, '\u201d')
+    .replace(/&ldquo;/g, '\u201c')
+    .replace(/&ndash;/g, '\u2013')
+    .replace(/&mdash;/g, '\u2014')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');   // must be last
 }
 
 /**

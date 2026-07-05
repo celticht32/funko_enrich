@@ -3,7 +3,30 @@
 Notable changes to the enricher pipeline. Most recent first.
 
 ---
-## Non-figure image filter — 2026-06-29
+## HTML entity decode in titles — 2026-07-05
+
+Titles that did NOT come through cheerio's `.text()` (Kenny Chan JSON, PriceCharting
+fields, raw attributes) kept their raw HTML entities. In practice only `&amp;`
+appeared — 536 occurrences across 533 catalog records, always in multi-figure pack
+names ("X &amp; Y (2-Pack)"); 3 owned collection items had inherited it. `&amp;` was
+surviving because `sanitiseTitle` only normalized whitespace and never decoded
+entities, so every run re-introduced it.
+
+### Fixed
+
+- **`sanitiseTitle(t)`** now runs `decodeHtmlEntities` before whitespace normalization.
+- **`decodeHtmlEntities(s)`** added — decodes the common entities (`&amp;`, `&quot;`,
+  `&#39;`, numeric `&#N;`/`&#xN;`, dashes, quotes, `&nbsp;`, `&lt;`/`&gt;`) with `&amp;`
+  last, and **loops until stable** so double-encoded input (`&amp;amp;` → `&amp;` → `&`,
+  one such record existed) fully collapses. Short-circuits when the string has no `&`.
+  `node -c` clean; unit-tested against real single/double/triple-encoded cases.
+
+Note: 533 catalog **document `_id`s** still contain `&amp;` (e.g.
+`catalog::jack-skellington-&amp;amp;-zero`) — left untouched on purpose, since changing
+a catalog doc's ID orphans it. IDs are internal keys; only the decoded `title` is
+displayed. New records built by the fixed enricher get clean handles going forward.
+
+
 
 HobbyDB CDN image filenames encode the media category
 (`Thumper_Pins_and_Badges_…jpg` vs `Maid_Vinyl_Art_Toys_…png`). When a character

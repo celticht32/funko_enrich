@@ -1951,6 +1951,7 @@ async function passHobbyDb(enriched, opts) {
         .replace(/-?&[a-z]+;-?/g, '-')
         .replace(/-?\[[^\]]*\]-?/g, '-')
         .replace(/[()]/g, '')
+        .replace(/["!]/g, '')       // literal quotes/bangs (e.g. "The Demon"..., Wooooo!) — no HDB slug equivalent
         .replace(/-?#\d*-?/g, '-')  // remove #NNN patterns (e.g. vampire-spike-#125-chase -> vampire-spike-chase)
         .replace(/,/g, '')
         .replace(/[''\u2018\u2019]/g, '-')
@@ -1964,31 +1965,39 @@ async function passHobbyDb(enriched, opts) {
       process.stdout.write(`  [${i + 1}/${candidates.length}] ${rec.title.slice(0, 45).padEnd(45)} `);
 
       try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        // HobbyDB is an Angular SPA: 'domcontentloaded' fires on the empty ~1.4KB
+        // shell, BEFORE the app fetches item data — reading page.content() then
+        // yields a shell with no refs (the cause of the false "no refs found").
+        // Wait for network to settle so the app has actually rendered the item.
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 })
+          .catch(() => {}); // networkidle can throw on slow pages; the wait below re-checks
 
-        // Wait for Angular to render the Reference # value specifically.
-        // 'Reference Numbers' heading appears before values populate — we must
-        // wait until the Reference # ng-binding div actually has content.
-        // Falls back gracefully if the record has no Reference # (timeout fires).
-        await page.waitForFunction(
-          () => {
-            const strongs = Array.from(document.querySelectorAll('strong'));
-            const refStrong = strongs.find(s => s.innerText.includes('Reference'));
-            if (!refStrong) return false;
-            const val = refStrong.parentElement &&
-                        refStrong.parentElement.querySelector('.ng-binding');
-            return val && val.innerText.trim().length > 0;
-          },
-          { timeout: 20000 }
-        ).catch(() => {});
+        // Confirm the item actually rendered (page grew well past the shell and a
+        // reference container exists). Retry once for slow renders.
+        const rendered = () => page.waitForFunction(
+          () => document.body &&
+                document.body.innerHTML.length > 5000 &&
+                (/Reference\s*#|UPC|HDBID/i.test(document.body.innerText) ||
+                 !!document.querySelector('.spaced-field, .col-md-6 .ng-binding')),
+          { timeout: 15000 }
+        ).then(() => true).catch(() => false);
 
-        const html = await page.content();
-        const refs   = parseHobbyDbRefs(html);
-        const series = parseHobbyDbSeries(html);
+        let ok = await rendered();
+        if (!ok) ok = await rendered();
+
+        const grab = async () => {
+          const html = await page.content();
+          return { html, refs: parseHobbyDbRefs(html), series: parseHobbyDbSeries(html) };
+        };
+
+        let { html, refs, series } = await grab();
 
         if (!refs && !series) {
+          // Parsed twice, static fallbacks included, still nothing. This record
+          // genuinely has no HobbyDB reference data (or no page). Mark checked so
+          // we don't re-fetch it every run.
           console.log('no refs found');
-          enriched[idx].hdbChecked = true; // mark as fetched so restarts skip it
+          enriched[idx].hdbChecked = true;
           notFound++;
         } else {
           // Merge into record

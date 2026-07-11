@@ -126,6 +126,8 @@ function parseArgs() {
       case '--retry-no-series':  opts.retryNoSeries   = true; break;
       case '--skip-funko-detail': opts.skipFunkoDetail = true; break;
       case '--funko-detail-delay': opts.funkoDetailDelay = intArg(args[++i], opts.funkoDetailDelay); break;
+      case '--scrub-collisions': opts.scrubCollisions = true; break; // run the UPC collision-scrub post-pass (dry-run unless --scrub-apply)
+      case '--scrub-apply':      opts.scrubApply      = true; break; // actually blank UPCs (default: report only, no writes)
     }
   }
   return opts;
@@ -190,7 +192,7 @@ function decodeHtmlEntitiesOnce(s) {
  * figure record. Storing that gives the figure a pin/keychain image (the
  * "Thumper shows a pin" bug). This rejects URLs whose media token is a known
  * non-figure category, so a wrong image is never stored — the record keeps an
- * empty imageName (placeholder) instead, which is preferable to a wrong image.
+ * empty imageUrl (placeholder) instead, which is preferable to a wrong image.
  *
  * Denylist (not allowlist) so new figure media tokens HobbyDB may introduce are
  * not accidentally rejected. Returns true if the URL is acceptable (figure or
@@ -200,6 +202,30 @@ const NON_FIGURE_MEDIA = /_(Pins_and_Badges|Keychains|Plush_Toys|PEZ_Dispensers|
 function isFigureImage(url) {
   if (!url) return false;               // nothing to store
   return !NON_FIGURE_MEDIA.test(url);   // accept unless a known non-figure token
+}
+
+/**
+ * PriceCharting serves product photos from a Google Cloud Storage CDN, sized by
+ * filename:
+ *   https://storage.googleapis.com/images.pricecharting.com/<hash>/60.jpg
+ * Only 60, 240, 320 and 1600 exist (100/128/300/480/640/1280 all 404). The
+ * console listing embeds the 60px thumbnail; we rewrite it to 1600 for a
+ * full-resolution image. When the source photo is smaller than 1600 the CDN
+ * simply returns it as-is rather than upscaling or 404ing, so asking for 1600
+ * always yields the best available and never fails.
+ *
+ * The HobbyDB `isFigureImage` merch denylist is deliberately NOT applied here:
+ * it keys on HobbyDB's filename media tokens, and PriceCharting hashes are
+ * opaque. PriceCharting pages are one-image-per-product keyed by
+ * pricechartingId, so there is no figure/merch mix-up to guard against.
+ *
+ * Returns '' for anything that isn't a recognisable PriceCharting CDN URL.
+ */
+function pcFullSizeImage(src) {
+  if (!src) return '';
+  const m = String(src).match(
+    /^(https?:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[A-Za-z0-9]+)\/\d+\.jpg$/);
+  return m ? `${m[1]}/1600.jpg` : '';
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -322,7 +348,7 @@ function findIndex(handle, title, handleIndex, titleIndex) {
 
 /**
  * Merge scraped fields into an existing record.
- * Core identity fields (handle, title, imageName, series) are never overwritten.
+ * Core identity fields (handle, title, imageUrl, series) are never overwritten.
  * New fields are only written if not already present (or if always-update flagged).
  */
 function mergeRecord(existing, scraped) {
@@ -365,7 +391,7 @@ const KENNY_URL = 'https://raw.githubusercontent.com/kennymkchan/funko-pop-data/
  * Downloads the Kenny Chan open-source dataset and merges any records not
  * already present in our working set. This catches items that HobbyDB missed.
  * Kenny's fields: handle, title, image (URL), series[]
- * His 'image' field maps to our 'imageName' (same HobbyDB CDN source).
+ * His 'image' field maps to our 'imageUrl' (same HobbyDB CDN source).
  */
 async function passKennyChan(enriched, titleIndex, handleIndex) {
   console.log('\n── Pass 1: Kenny Chan GitHub dataset ──────────────────────────');
@@ -400,10 +426,10 @@ async function passKennyChan(enriched, titleIndex, handleIndex) {
     if (idx !== -1) {
       // Existing record — fill image if missing (Kenny uses same HobbyDB CDN).
       // Skip non-figure images (pins/keychains/plush) so we never overwrite an
-      // empty imageName with a merch photo.
+      // empty imageUrl with a merch photo.
       const existing = enriched[idx];
-      if (rec.image && !existing.imageName && isFigureImage(rec.image)) {
-        enriched[idx] = { ...existing, imageName: rec.image };
+      if (rec.image && !existing.imageUrl && isFigureImage(rec.image)) {
+        enriched[idx] = { ...existing, imageUrl: rec.image };
         enrichedCount++;
       }
     } else {
@@ -413,7 +439,7 @@ async function passKennyChan(enriched, titleIndex, handleIndex) {
       const newRec = {
         handle:    handle || normTitle.replace(/\s+/g, '-'),
         title:     sanitiseTitle(title),
-        imageName: isFigureImage(rec.image) ? rec.image : '',
+        imageUrl:  isFigureImage(rec.image) ? rec.image : '',
         series:    rec.series || [],
         kennySource: true,
       };
@@ -686,7 +712,7 @@ async function passFunkoCom(enriched, titleIndex, handleIndex, opts) {
                 handle:            scraped.handle || normTitle.replace(/\s+/g, '-'),
                 title:             sanitiseTitle(scraped.title),
                 popType:           scraped.popType || 'Standard',
-                imageName:         scraped.funkoPrimaryImage || '',
+                imageUrl:          scraped.funkoPrimaryImage || '',
                 series:            scraped.series || [],
                 pid:               scraped.pid || '',
                 price:             scraped.price || '',
@@ -1427,6 +1453,7 @@ function parsePriceChartingListing(html) {
       name,
       console: consoleSlug,
       href: href.startsWith('http') ? href : `${PC_BASE}${href}`,
+      imageUrl: pcFullSizeImage($(el).find('img.photo').first().attr('src')),
       loose:    num($(el).find('td').eq(3).text()),
       complete: num($(el).find('td').eq(4).text()),
       mint:     num($(el).find('td').eq(5).text()),
@@ -1680,6 +1707,10 @@ async function passPriceChartingCrawl(enriched, opts) {
             pricechartingId: String(s.id),
             pricechartingUrl: s.href,
           };
+          // PriceCharting product photo (full-res). Previously nothing on the PC
+          // path stored an image at all, which is why ~8.5k pc- records shipped
+          // with a blank imageUrl and the app showed no picture for any of them.
+          if (s.imageUrl) rec.imageUrl = s.imageUrl;
           if (s.loose)    rec.marketValueLoose    = s.loose;
           if (s.complete) rec.marketValueComplete = s.complete;
           if (s.mint)     rec.marketValueNew      = s.mint;
@@ -2338,6 +2369,10 @@ function dedupeAndMerge(enriched) {
                      'marketValueComplete','marketValueNew','upc','releaseDate',
                      'ebayEpid','amazonAsin','printRun','publisher','pcDescription',
                      'pcSeries','funkoNumber',
+                     // Primary product image. Fill-only, like everything else in
+                     // this list: a record that already has an imageUrl (HobbyDB
+                     // or funko.com) keeps it; one with none gets PriceCharting's.
+                     'imageUrl',
                      // Done-markers: carry these onto the survivor so a later run
                      // doesn't re-scrape a record just because dedup collapsed the
                      // copy that held the marker. Efficiency only — never affects
@@ -2484,6 +2519,109 @@ function cleanTitles(enriched) {
   }
   console.log(`  Titles cleaned: ${changed}`);
   return changed;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UPC COLLISION SCRUB (post-pass)
+// ═══════════════════════════════════════════════════════════════════════════════
+/**
+ * Remove UPCs that were wrongly stapled onto the wrong figure upstream (mostly
+ * the Kenny Chan source, which attaches one barcode to every record sharing a
+ * box number regardless of character). Finish-variants of ONE figure (plain /
+ * flocked / GITD) legitimately share a UPC AND a box number — those are left
+ * untouched. The tell for a bad link is a UPC group whose records carry
+ * DIFFERENT numeric box numbers: a shared barcode across different box numbers
+ * is not a variant family, it's a mis-staple.
+ *
+ * Within each mixed-box group we keep the records on the WINNING box number and
+ * blank the UPC on the rest (Option A — surgical, not blank-everything):
+ *   - winner = an owned (type=funko) record's box number if one is in the group
+ *     (owned records are ground truth and are NEVER blanked), else
+ *   - winner = the plurality box number, else
+ *   - on a tie with no owned anchor, blank all catalog UPCs in the group (strict).
+ * Blanked records also lose pricechartingUrl/pricechartingId so re-enrichment
+ * rebuilds the link cleanly by exact name+number.
+ *
+ * Dry-run by default: writes a changelog and mutates nothing unless apply=true.
+ * Returns { blanked, groupsHit, ownedAnchored, tieStrict, changelog }.
+ */
+function scrubUpcCollisions(enriched, { apply = false } = {}) {
+  console.log('\n── Post-process: UPC collision scrub ─────────────────────────');
+  console.log(`  mode: ${apply ? 'APPLY (blanking UPCs)' : 'DRY-RUN (report only, no writes)'}`);
+
+  const boxNumOf = rec => {
+    const n = rec.funkoNumber;
+    if (n === undefined || n === null) return '';
+    const s = String(n).replace(/[^0-9]/g, '');
+    return s.replace(/^0+/, '') || (s ? '0' : '');
+  };
+
+  // Group catalog + owned records by normalized UPC.
+  const groups = new Map();
+  for (let i = 0; i < enriched.length; i++) {
+    const r = enriched[i];
+    if (r.type !== 'catalog' && r.type !== 'funko') continue;
+    const u = normalizeUpc(r.upc);
+    if (!u) continue;
+    if (!groups.has(u)) groups.set(u, []);
+    groups.get(u).push(i);
+  }
+
+  const changelog = [];
+  let blanked = 0, groupsHit = 0, ownedAnchored = 0, tieStrict = 0;
+
+  for (const [upc, idxs] of groups) {
+    if (idxs.length < 2) continue;
+    const boxList = idxs.map(i => boxNumOf(enriched[i])).filter(Boolean);
+    if (new Set(boxList).size <= 1) continue;   // consistent box# -> legit variant family
+
+    groupsHit++;
+    const ownedBoxes = idxs
+      .filter(i => enriched[i].type === 'funko')
+      .map(i => boxNumOf(enriched[i]))
+      .filter(Boolean);
+
+    let winners = null, mode = '';
+    if (ownedBoxes.length) {
+      winners = new Set(ownedBoxes); mode = 'owned-anchor'; ownedAnchored++;
+    } else {
+      const cnt = {};
+      boxList.forEach(b => { cnt[b] = (cnt[b] || 0) + 1; });
+      const max = Math.max(...Object.values(cnt));
+      const tops = Object.keys(cnt).filter(b => cnt[b] === max);
+      if (tops.length === 1) { winners = new Set(tops); mode = 'plurality'; }
+      else { winners = null; mode = 'tie-strict'; tieStrict++; }
+    }
+
+    for (const i of idxs) {
+      const r = enriched[i];
+      if (r.type === 'funko') continue;          // never blank ground-truth owned records
+      const b = boxNumOf(r);
+      const doBlank = winners ? !(b && winners.has(b)) : true;
+      if (!doBlank) continue;
+      changelog.push({
+        upc,
+        blankedBox: b || '(none)',
+        keptBox: winners ? [...winners].join(',') : 'ALL(tie)',
+        mode,
+        title: r.title,
+        source: r.source || '-',
+        id: r._id,
+      });
+      if (apply) {
+        r.upc = '';
+        if ('pricechartingUrl' in r) r.pricechartingUrl = '';
+        if ('pricechartingId'  in r) r.pricechartingId  = '';
+      }
+      blanked++;
+    }
+  }
+
+  console.log(`  Mixed-box UPC groups found:    ${groupsHit}`);
+  console.log(`    owned-anchored:              ${ownedAnchored}`);
+  console.log(`    tie -> strict:               ${tieStrict}`);
+  console.log(`  Catalog UPCs ${apply ? 'blanked' : 'to blank'}:        ${blanked}`);
+  return { blanked, groupsHit, ownedAnchored, tieStrict, changelog };
 }
 
 function extractNumbersFromTitles(enriched) {
@@ -2945,6 +3083,21 @@ async function main() {
   //     reorder this should remove ~nothing from the HobbyDB side.
   const cleaned2 = removeNonPops(enriched);
   enriched.length = 0; enriched.push(...cleaned2);
+
+  // 4b. UPC collision scrub (opt-in). Runs after number extraction so box
+  //     numbers are populated, and before grouping so scrubbed records group
+  //     cleanly. Dry-run unless --scrub-apply; always writes a changelog next
+  //     to the output for review.
+  if (opts.scrubCollisions) {
+    const scrub = scrubUpcCollisions(enriched, { apply: !!opts.scrubApply });
+    const clPath = path.resolve(opts.output).replace(/\.json$/i, '') +
+      `.upc-scrub${opts.scrubApply ? '' : '.dryrun'}.json`;
+    fs.writeFileSync(clPath, JSON.stringify(scrub.changelog, null, 2), 'utf8');
+    console.log(`  changelog: ${clPath}`);
+    if (!opts.scrubApply && scrub.blanked > 0) {
+      console.log('  (dry-run — review the changelog, then re-run with --scrub-apply)');
+    }
+  }
 
   // 5. Derive collection-grouping fields (setTag, franchiseSuggestion) LAST, over
   //    the final clean record set, so the series-tag frequency map and console

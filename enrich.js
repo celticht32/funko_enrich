@@ -2,25 +2,33 @@
  * Funko Data Enricher
  * MIT License, Copyright (c) 2026 Chris Ahrendt
  *
- * Three-pass enrichment pipeline:
- *   Pass 1 — Kenny Chan GitHub (MIT open dataset, ~23k records)
- *             Fills catalog gaps — items not in your HobbyDB source.
+ * Enrichment pipeline (Kenny Chan Pass 1 removed — that dataset was deprecated
+ * and its per-character shape was the source of most data-quality problems):
  *   Pass 2 — funko.com scrape
  *             Adds: price, available, productUrl, funkoPrimaryImage, pid
  *   Pass 3 — PriceCharting.com scrape
  *             Adds: marketValueLoose, marketValueComplete, marketValueNew,
  *                   pricechartingId, pricechartingUrl
  *             Only runs on records still missing market pricing after Pass 2.
+ *   Pass 4 — HobbyDB reference scrape (Reference Numbers / series tags)
+ *   Pass 5 — funko.com detail pages (breadcrumb franchise)
+ *
+ * OUTPUT SHAPE: by default the output is the base catalog document shape
+ * (catalog:: ids, string `series`, derived isExclusive/isChase/seriesNumber,
+ * scaffolding fields dropped) — i.e. the file IS a base catalog, ready to ship /
+ * import with no further translation. Pass --working-shape for the raw enricher
+ * shape (array series, no catalog:: ids) if a downstream tool still needs it.
  *
  * Usage:
  *   node enrich.js [options]
  *
  * Options:
- *   --input           Path to existing funko_data.json  (default: funko_data.json)
- *   --output          Path for enriched output           (default: funko_data_enriched.json)
- *   --delay           Milliseconds between requests      (default: 1500)
- *   --max-pages       Stop funko.com after N pages       (default: 0 = unlimited)
- *   --skip-kenny      Skip Pass 1 (Kenny Chan merge)
+ *   --input           Input catalog JSON                   (default: funkodex_base_catalog.json)
+ *   --output          Path for enriched output             (default: funkodex_base_catalog.enriched.json)
+ *   --working-shape   Emit raw enricher shape instead of the base catalog shape
+ *   --catalog-source  `source` value for records lacking one (default: ENRICHED)
+ *   --delay           Milliseconds between requests        (default: 1500)
+ *   --max-pages       Stop funko.com after N pages         (default: 0 = unlimited)
  *   --skip-funko      Skip Pass 2 (funko.com scrape)
  *   --skip-pc         Skip Pass 3 (PriceCharting scrape)
  *   --pc-limit        Max items to look up on PriceCharting (default: 100000 = all)
@@ -30,7 +38,7 @@
  *   --pc-fill-upc     Pass 3: also fill UPC on priced-but-no-UPC records (DEFAULT ON)
  *   --no-pc-fill-upc  Disable the UPC top-up
  *   --skip-hdb        Skip Pass 4 (HobbyDB Reference Numbers / series scrape)
- *   --hdb-limit       Max HobbyDB lookups per run        (default: 5000)
+ *   --hdb-limit       Max HobbyDB lookups per run        (default: 6000; --hdb-limit 1000000 = uncapped)
  *   --hdb-delay       Milliseconds between HobbyDB requests (default: 1500)
  *   --hdb-all         Re-check all HobbyDB records, ignoring hdbChecked
  *   --retry-no-refs   Re-fetch hdbChecked records that have no hdbid
@@ -49,7 +57,6 @@
 
 const fs      = require('fs');
 const path    = require('path');
-const fetch   = require('node-fetch');
 const cheerio = require('cheerio');
 
 // ─── CLI args ────────────────────────────────────────────────────────────────
@@ -57,11 +64,10 @@ const cheerio = require('cheerio');
 function parseArgs() {
   const args = process.argv.slice(2);
   const opts = {
-    input:      'funko_data.json',
-    output:     'funko_data_enriched.json',
+    input:      'funkodex_base_catalog.json',
+    output:     'funkodex_base_catalog.enriched.json',
     delay:      1500,
     maxPages:   0,
-    skipKenny:  false,
     skipFunko:  false,
     skipPc:     false,
     // Completeness-maximizing defaults: a plain `node enrich.js` now does the
@@ -76,9 +82,13 @@ function parseArgs() {
     chromePath: null,
     popsOnly:   false,
     skipHdb:    false,
-    hdbLimit:   1000000, // effectively uncapped — process every HobbyDB candidate
-                         // in one run (resume + checkpoints make a long run crash-safe).
-                         // Lower it (--hdb-limit N) only for quick partial test runs.
+    hdbLimit:   6000,   // per-run cap on HobbyDB visits (~2.5h at 1500ms). The
+                        // candidate filter already skips records that are complete,
+                        // so on an enriched catalog a single run usually clears the
+                        // whole backlog; on a fresh crawl this bounds one run to a
+                        // sane length and the resume/checkpoint design lets repeated
+                        // runs converge on full coverage without redoing work.
+                        // Pass --hdb-limit 1000000 to force one uncapped run.
     hdbDelay:   1500,   // ms between HobbyDB requests
     hdbAll:          false,  // look up all records, not just missing
     retryNoRefs:     false,  // re-fetch records with hdbChecked but no hdbid
@@ -105,7 +115,6 @@ function parseArgs() {
       case '--output':      opts.output     = args[++i]; break;
       case '--delay':       opts.delay      = intArg(args[++i], opts.delay); break;
       case '--max-pages':   opts.maxPages   = intArg(args[++i], opts.maxPages); break;
-      case '--skip-kenny':  opts.skipKenny  = true; break;
       case '--skip-funko':  opts.skipFunko  = true; break;
       case '--skip-pc':     opts.skipPc     = true; break;
       case '--pc-limit':    opts.pcLimit    = intArg(args[++i], opts.pcLimit); break;
@@ -128,6 +137,8 @@ function parseArgs() {
       case '--funko-detail-delay': opts.funkoDetailDelay = intArg(args[++i], opts.funkoDetailDelay); break;
       case '--scrub-collisions': opts.scrubCollisions = true; break; // run the UPC collision-scrub post-pass (dry-run unless --scrub-apply)
       case '--scrub-apply':      opts.scrubApply      = true; break; // actually blank UPCs (default: report only, no writes)
+      case '--working-shape':    opts.workingShape    = true; break; // emit the raw enricher shape (array series, no catalog:: ids) instead of the default base catalog shape
+      case '--catalog-source':   opts.catalogSource   = args[++i]; break; // value written to `source` on records that don't already carry one (default: ENRICHED)
     }
   }
   return opts;
@@ -197,12 +208,11 @@ function decodeHtmlEntitiesOnce(s) {
  * Denylist (not allowlist) so new figure media tokens HobbyDB may introduce are
  * not accidentally rejected. Returns true if the URL is acceptable (figure or
  * unknown), false if it is a recognised non-figure image.
+ *
+ * (The former isFigureImage() merch-denylist helper was removed with Kenny Pass 1;
+ * the funko.com and PriceCharting image paths don't use HobbyDB's CDN filename
+ * tokens, so the denylist never applied to them.)
  */
-const NON_FIGURE_MEDIA = /_(Pins_and_Badges|Keychains|Plush_Toys|PEZ_Dispensers|Pens|Shirts_and_Jackets|Coin_Banks|Uniform_Patches|Bags|Wallets|Lanyards|Mugs|Posters|Apparel)_[0-9a-f]{6,}/i;
-function isFigureImage(url) {
-  if (!url) return false;               // nothing to store
-  return !NON_FIGURE_MEDIA.test(url);   // accept unless a known non-figure token
-}
 
 /**
  * PriceCharting serves product photos from a Google Cloud Storage CDN, sized by
@@ -297,33 +307,6 @@ function classifyPop(title) {
   return splitPopTitle(t);  // { popType, name }
 }
 
-/** Fetch with retry on 429 / 5xx */
-async function fetchWithRetry(url, opts = {}, retries = 3, backoff = 2000) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
-          'Accept':     'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-        },
-        ...opts,
-      });
-      if (res.status === 429 || res.status >= 500) {
-        console.warn(`    HTTP ${res.status} attempt ${attempt}/${retries} — waiting ${backoff * attempt}ms`);
-        await sleep(backoff * attempt);
-        continue;
-      }
-      return res;
-    } catch (err) {
-      if (attempt === retries) throw err;
-      console.warn(`    Network error attempt ${attempt}/${retries}: ${err.message}`);
-      await sleep(backoff * attempt);
-    }
-  }
-  return null;
-}
-
 // ─── Index management ────────────────────────────────────────────────────────
 
 function buildIndexes(records) {
@@ -379,81 +362,6 @@ function mergeRecord(existing, scraped) {
   }
 
   return merged;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PASS 1 — Kenny Chan GitHub dataset merge
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const KENNY_URL = 'https://raw.githubusercontent.com/kennymkchan/funko-pop-data/master/funko_pop.json';
-
-/**
- * Downloads the Kenny Chan open-source dataset and merges any records not
- * already present in our working set. This catches items that HobbyDB missed.
- * Kenny's fields: handle, title, image (URL), series[]
- * His 'image' field maps to our 'imageUrl' (same HobbyDB CDN source).
- */
-async function passKennyChan(enriched, titleIndex, handleIndex) {
-  console.log('\n── Pass 1: Kenny Chan GitHub dataset ──────────────────────────');
-  console.log(`  Downloading from: ${KENNY_URL}`);
-
-  let kennyRecords;
-  try {
-    const res = await fetchWithRetry(KENNY_URL);
-    if (!res || !res.ok) {
-      console.warn(`  Failed to fetch Kenny Chan data (HTTP ${res ? res.status : 'N/A'}) — skipping.`);
-      return { newCount: 0, enrichedCount: 0 };
-    }
-    const text = await res.text();
-    kennyRecords = JSON.parse(text);
-  } catch (err) {
-    console.warn(`  Error fetching/parsing Kenny Chan data: ${err.message} — skipping.`);
-    return { newCount: 0, enrichedCount: 0 };
-  }
-
-  console.log(`  Downloaded ${kennyRecords.length} records`);
-
-  let newCount      = 0;
-  let enrichedCount = 0;
-
-  for (const rec of kennyRecords) {
-    const handle = (rec.handle || '').trim();
-    const title  = (rec.title  || '').trim();
-    if (!handle && !title) continue;
-
-    const idx = findIndex(handle, title, handleIndex, titleIndex);
-
-    if (idx !== -1) {
-      // Existing record — fill image if missing (Kenny uses same HobbyDB CDN).
-      // Skip non-figure images (pins/keychains/plush) so we never overwrite an
-      // empty imageUrl with a merch photo.
-      const existing = enriched[idx];
-      if (rec.image && !existing.imageUrl && isFigureImage(rec.image)) {
-        enriched[idx] = { ...existing, imageUrl: rec.image };
-        enrichedCount++;
-      }
-    } else {
-      // New record not in our base set
-      const normTitle  = normaliseTitle(title);
-      const normHandle = handle.toLowerCase();
-      const newRec = {
-        handle:    handle || normTitle.replace(/\s+/g, '-'),
-        title:     sanitiseTitle(title),
-        imageUrl:  isFigureImage(rec.image) ? rec.image : '',
-        series:    rec.series || [],
-        kennySource: true,
-      };
-      const newIdx = enriched.length;
-      enriched.push(newRec);
-      if (normTitle)  titleIndex.set(normTitle, newIdx);
-      if (normHandle) handleIndex.set(normHandle, newIdx);
-      newCount++;
-    }
-  }
-
-  console.log(`  New records added: ${newCount}`);
-  console.log(`  Existing records enriched: ${enrichedCount}`);
-  return { newCount, enrichedCount };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -949,8 +857,20 @@ function coreNameTokens(title) {
 function coreNameCovered(recTitle, rowName) {
   const want = coreNameTokens(recTitle);
   if (want.length === 0) return true;                // nothing to check
-  const rowLc = (rowName || '').toLowerCase();
-  return want.every(w => rowLc.includes(w));
+  // Match on WORD BOUNDARIES, not raw substrings. A plain `includes` accepts a
+  // token that merely sits inside a longer word, which silently matched entirely
+  // different figures: "Ram" -> "Bram Stoker" ("ram" inside "bram"), "Poe" ->
+  // "Poet Anderson" ("poe" inside "poet"), "Will" -> "Chilly Willy" ("will"
+  // inside "willy"). Tokenising the row name and comparing whole words closes
+  // that hole while still allowing the row to carry extra words (which is the
+  // point of "covered" — "Erza" is covered by "Erza Scarlet").
+  const rowWords = new Set(
+    String(rowName || '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean)
+  );
+  return want.every(w => rowWords.has(w));
 }
 
 
@@ -1070,6 +990,28 @@ function normalizeUpc(raw) {
   const digits = String(raw).replace(/[^0-9]/g, '');
   if (digits.length >= 12) return digits.slice(0, 12);
   return null;
+}
+
+/**
+ * Validate a barcode's check digit. Accepts a 12-digit UPC-A or a 13-digit
+ * EAN-13 (a leading-zero UPC-A comes through as 13). Returns true only when the
+ * trailing check digit is arithmetically correct. Used to refuse a UPC that a
+ * scrape may have truncated, mis-read, or pulled from the wrong element before
+ * it can be written onto a record — a malformed barcode is worse than none,
+ * since a blank field re-resolves cleanly and a wrong one corrupts silently.
+ */
+function upcaChecksumOk(raw) {
+  const d = String(raw || '').replace(/[^0-9]/g, '');
+  let u = d;
+  if (d.length === 13) u = d.slice(1);        // EAN-13 leading zero → UPC-A
+  if (u.length !== 12) return false;
+  let odd = 0, even = 0;
+  for (let i = 0; i < 11; i++) {
+    const n = u.charCodeAt(i) - 48;
+    if (i % 2 === 0) odd += n; else even += n;
+  }
+  const check = (10 - ((odd * 3 + even) % 10)) % 10;
+  return check === (u.charCodeAt(11) - 48);
 }
 
 /**
@@ -1283,9 +1225,27 @@ async function passPriceCharting(enriched, opts) {
 
       // Harvest any metadata into fields the record is MISSING — never overwrite
       // existing values (HobbyDB/funko.com data is treated as authoritative).
+      //
+      // UPC is special. A barcode is an EXACT product key: transferring it from a
+      // PriceCharting product onto a record asserts the two are the same product.
+      // On an approximate match (a variant priced from its base figure because PC
+      // doesn't list the variant separately) or a loose substring base-name match,
+      // that assertion is false — and stapling the base figure's UPC onto the
+      // variant is exactly how one barcode ends up shared across different figures
+      // (the mis-staple class the fix_*_upc scripts had to clean up). So we only
+      // let a PC-page UPC through when the match is UPC-grounded or an EXACT
+      // core-name match. Every other meta field (price, series, dates) keeps the
+      // fill-if-missing behaviour, since a slightly-off price is harmless where a
+      // wrong UPC is corrupting.
       const meta = (detail && detail.meta) || {};
+      const upcTransferAllowed =
+        match._matchedBy === 'upc' ||
+        match._matchedBy === 'upc-multi' ||
+        (!conf.approximate && coreNameExact(rec.title, match.name));
       let metaFilled = 0;
       for (const [k, v] of Object.entries(meta)) {
+        if (k === 'upc' && !upcTransferAllowed) continue;         // block mis-staple
+        if (k === 'upc' && !upcaChecksumOk(v)) continue;          // block malformed barcode
         if (v && (rec[k] === undefined || rec[k] === null || rec[k] === '')) {
           updates[k] = v;
           metaFilled++;
@@ -1334,7 +1294,7 @@ async function passPriceCharting(enriched, opts) {
  * used if discovery fails. Unknown slugs 404 and are skipped harmlessly.
  *
  * ON by default (disable with --no-pc-crawl). This is the pass that grows the
- * record set beyond Kenny Chan + funko.com, so it stays on for the golden master.
+ * record set beyond the base catalog + funko.com, so it stays on for the golden master.
  */
 
 // Fallback list, used only if live discovery fails. Mirrors the funko-pop-*
@@ -1911,8 +1871,17 @@ async function passHobbyDb(enriched, opts) {
     return { found: 0, notFound: 0, errors: 0 };
   }
 
-  // Candidates: records with a handle but missing upc or funkoNumber
+  // Candidates: records with a handle that are still MISSING something HobbyDB
+  // supplies (upc, funkoNumber, or series). A record that already has all three
+  // gains nothing from a HobbyDB visit, so we skip it — on an already-enriched
+  // catalog this avoids re-fetching the ~88% of records that are already
+  // complete (the difference between a ~1h and an ~8h run). The retry flags
+  // (hdbAll / retryNoRefs / retryNoSeries) override this and force a visit.
   // (skip funko.com-only records — they have no HobbyDB page)
+  const hdbComplete = (rec) =>
+    !!(String(rec.upc || '').trim()) &&
+    !!(String(rec.funkoNumber || '').trim()) &&
+    !!(Array.isArray(rec.series) ? rec.series.length : String(rec.series || '').trim());
   const candidates = enriched
     .map((rec, i) => ({ rec, i }))
     .filter(({ rec }) => {
@@ -1920,7 +1889,8 @@ async function passHobbyDb(enriched, opts) {
       if (opts.hdbAll) return true;
       if (opts.retryNoRefs)   return rec.hdbChecked && !rec.hdbid; // only retry no-refs
       if (opts.retryNoSeries) return rec.hdbChecked && (!rec.series || rec.series.length === 0); // only retry missing series
-      return !rec.hdbid && !rec.hdbChecked; // skip if already fetched
+      if (rec.hdbid || rec.hdbChecked) return false;  // already fetched
+      return !hdbComplete(rec);   // skip if it already has upc + funkoNumber + series
     })
     .slice(0, opts.hdbLimit);
 
@@ -2035,7 +2005,8 @@ async function passHobbyDb(enriched, opts) {
           const r = enriched[idx];
           if (refs) {
             if (refs.hdbid       && !r.hdbid)       r.hdbid       = refs.hdbid;
-            if (refs.upc         && !r.upc)         r.upc         = refs.upc;
+            if (refs.upc         && !r.upc && upcaChecksumOk(refs.upc))
+                                                    r.upc         = refs.upc;
             if (refs.funkoNumber && !r.funkoNumber) r.funkoNumber = refs.funkoNumber;
             if (refs.hotTopicSku && !r.hotTopicSku) r.hotTopicSku = refs.hotTopicSku;
             if (refs.gamestopSku && !r.gamestopSku) r.gamestopSku = refs.gamestopSku;
@@ -2407,7 +2378,19 @@ function dedupeAndMerge(enriched) {
 // funko.com records already filtered by classifyPop() in Pass 2 — this only
 // needs to clean up the original HobbyDB records.
 
-const NON_POP_TITLE_WORDS = /\b(backpack|bag|wallet|crossbody|lanyard|keychain|soda|mystery minis|wacky wobbler|funkoverse|bitty pop|pocket pop|pin set|enamel pin|zip around|cardigan|hoodie|jacket|legging|dress|beanie|cap|hat|mug|cup|cushion|plush|peluche|dorbz|vynl|hikari|rock candy|fabrikations|paka paka|spastik plastik)\b/i;
+// Title words that mark a record as non-Pop merch. NOTE: bare apparel/container
+// words (hat, cap, mug, cup, bag, jacket, dress) are deliberately NOT here — a
+// Pop can be "wearing a Fruit Hat" or "with Cup", so those words in a title don't
+// make it merch. Real apparel/glassware is caught by NON_POP_IMAGE_CATEGORY
+// instead (the HobbyDB product category is reliable where the title isn't).
+// Likewise "monopoly" is omitted — "Mr. Monopoly" is a real Ad Icons Pop.
+const NON_POP_TITLE_WORDS = /\b(backpack|crossbody|lanyard|keychain|soda|mystery minis|wacky wobbler|funkoverse|bitty pop|pocket pop|pin set|enamel pin|zip around|cardigan|hoodie|legging|beanie|cushion|plush|peluche|dorbz|vynl|hikari|rock candy|fabrikations|paka paka|spastik plastik|pint glass|shot glass|insulated glass|toothpick|thermos|tumbler|hacky sack|stress ball|ping pong|card game|cookie cutter|cookie jar|pop protector|popshield|snapback|luggage tag|salt and pepper|tote bag|magnets?|fidget spinner|fidget|funko'?s|funkos|cereal|notebook|journal|sticker|decal|coaster|playing cards?|puzzle|board game|dice|ornament|earbuds|headphones|phone case|air freshener|freshener|water bottle|bottle opener|figural bank|coin bank|mousepad|mouse pad|snow globe|water globe|lunchbox|lunch box)\b|^i'm a fan of /i;
+// Product-form merch: these words also name things a Pop can WEAR ("with
+// Sunglasses", "No Apron"), so only treat them as merch when the item is the
+// product itself — i.e. the word ends the title or follows a franchise/brand
+// name, NOT when it's a parenthetical descriptor. Guards against re-flagging
+// Pops like "Gremlin (with Sunglasses)" or "The Neighbor (with Apron)".
+const NON_POP_TITLE_PRODUCT = /(?<![(,]\s?(?:with |no |in )?)\b(scarf|apron|sunglasses|3d glasses|necktie|slippers|gloves|towel|blanket|pillow)\b\s*$/i;
 // Note: tee/shirt removed from title filter — Pop figures can have shirt/tee in their
 // variant name (e.g. 'Hulk Hogan (Ripped Shirt)'). Apparel is caught by the
 // 'pop! tees & apparel' / 'shirts and jackets' series tags instead.
@@ -2421,16 +2404,61 @@ const NON_POP_SERIES = [
   'something wild', 'funko games -',
 ];
 
+// HobbyDB files each catalog photo under a product-CATEGORY token embedded in the
+// image URL (e.g. ".../White_Bone_Demon_Vinyl_Art_Toys_<hash>.jpg" for a Pop, but
+// ".../Chewbacca_Pint_Glass_Glasses_and_Barware_<hash>.jpg" for merch). When the
+// series tags are missing/wrong (as they are on ~565 legacy records), this image
+// category is the only reliable non-Pop signal. These tokens are unambiguous
+// merch categories — a real Pop is filed under Vinyl_Art_Toys / Action_Figures,
+// never these.
+// Hard-merch categories only — a real Pop is never filed under these, so with the
+// no-PriceCharting-id guard below it is safe to auto-drop on this signal. Soft
+// categories that CAN contain real Pops mis-filed (Whatever_Else, Books,
+// Comics_and_Graphic_Novels, Christmas_and_Holiday_Ornaments) are deliberately
+// NOT here — those need review, not silent removal.
+const NON_POP_IMAGE_CATEGORY = /_(Pins_and_Badges|Shirts_and_Jackets|Glasses_and_Barware|Hats|Bags|Wallets|Lanyards|Luggage_Tags|Display_Cases|Hoodies|Socks|Keychains)_[0-9a-f]{6,}/i;
+
 function isNonPop(rec) {
   // funko.com records already filtered — only check HobbyDB originals
   if (rec.funkoSource) return false;
 
+  // STRONG POP EVIDENCE overrides a bad title — but ONLY when the HobbyDB image
+  // category says "figure". HobbyDB sometimes mis-titles a real Pop (e.g.
+  // "Castiel FunkO's" is a genuine Pop! Television Supernatural #95, filed under
+  // Vinyl_Art_Toys). Series+number is NOT sufficient evidence: FunkO's cereal
+  // boxes legitimately carry a Pop! Disney series tag and the box number of the
+  // Pocket Pop inside them, and those are filed under Whatever_Else. The image
+  // category is the only signal that separates the two.
+  {
+    const figureImg = /_(Vinyl_Art_Toys|Action_Figures)_[0-9a-f]{6,}/i.test(rec.imageUrl || '');
+    const realNum = !['', '__unresolved__'].includes(String(rec.funkoNumber || '').trim());
+    const sRaw = Array.isArray(rec.series) ? rec.series : (rec.series ? [rec.series] : []);
+    const sLc = sRaw.map(s => String(s).toLowerCase());
+    // NON_POP_SERIES tags (dorbz/vynl/mystery minis/...) still win — those are
+    // real product lines that are genuinely not Pops, however they're filed.
+    const merchSeries = NON_POP_SERIES.some(tag => sLc.some(s => s.includes(tag)));
+    if (figureImg && realNum && !merchSeries) return false;
+  }
+
+
   // Title keyword check
   if (NON_POP_TITLE_WORDS.test(rec.title || '')) return true;
+  // Product-form apparel (trailing, not a "(with X)" descriptor)
+  if (NON_POP_TITLE_PRODUCT.test(rec.title || '')) return true;
 
   // Series tag check
-  const series = (rec.series || []).map(s => s.toLowerCase());
+  const seriesRaw = Array.isArray(rec.series) ? rec.series : (rec.series ? [rec.series] : []);
+  const series = seriesRaw.map(s => String(s).toLowerCase());
   if (NON_POP_SERIES.some(tag => series.some(s => s.includes(tag)))) return true;
+
+  // Image-category check — catches merch whose series tags are missing/wrong (the
+  // legacy contamination the series check alone misses). Guarded by "no PriceCharting
+  // id": a record PC lists as a Pop is a real figure whose HobbyDB image merely
+  // happened to be filed oddly, so we DON'T drop it on image category alone.
+  if (NON_POP_IMAGE_CATEGORY.test(rec.imageUrl || '') &&
+      !String(rec.pricechartingId || '').trim()) {
+    return true;
+  }
 
   // 'Pop! and Shirt Pack' series can be either a bundle (keep) or standalone tee (drop).
   // Keep if title contains 'pop and shirt/tee' — that's the actual bundle.
@@ -2504,9 +2532,25 @@ function cleanTitle(t) {
   if (!t) return t;
   let s = decodeHtmlEntities(t);
   s = s.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
-  s = s.replace(/^(?:Funko\s+)?Pop!?\s+(?=\S)/i, '');   // leading Funko Pop! / Pop!
+
+  // Product-type boilerplate that scraped sources (HobbyDB, funko.com product
+  // pages) wrap around the character name:
+  //   "Funko Pop! Vinyl Figure Easter Angel"      -> "Easter Angel"
+  //   "Disney Mickey ... Funko Pop Vinyl Figure"  -> "Disney Mickey ..."
+  //   "Red One Nick Funko Pop Vinyl Figure #123"  -> "Red One Nick"
+  // Matches only the FULL "...Vinyl Figure[s]" phrase, so the "Freddy Funko"
+  // mascot, "Funko HQ", "FunkO's", and a bare "Pop! Vinyl" series suffix are
+  // never touched. Trailing form also eats a dangling "#" or "#<number>".
+  const BOILER = "(?:funko\\s+)?pop!?\\s+vinyl\\s+figures?";
+  s = s.replace(new RegExp("[\\s,:\\-]*" + BOILER + "\\s*#?\\s*\\d*\\s*$", "i"), ""); // trailing
+  s = s.replace(new RegExp("^\\s*" + BOILER + "[\\s:,\\-]*", "i"), "");               // leading
+
+  // Leading bare "Funko Pop!" / "Pop!" — but NOT when the next word is a real
+  // Pop sub-line (Rides, Deluxe, Town, ...), which is part of the identity.
+  s = s.replace(/^(?:Funko\s+)?Pop!?\s+(?!Rides|Deluxe|Town|Vinyl|Moment|Album|Movie|Keychain|Pez|Die|Trains|Minis|Comic)(?=\S)/i, '');
+
   s = s.replace(/\s*\(Bobble-?Head\)\s*$/i, '');         // trailing (Bobble-Head)
-  s = s.replace(/\s{2,}/g, ' ').trim();
+  s = s.replace(/\s{2,}/g, ' ').replace(/\s+#\s*$/, '').trim();
   return s;
 }
 
@@ -2914,6 +2958,144 @@ function mergeDuplicateHandles(enriched) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// BASE CATALOG SHAPE  (unify enricher output with the app's catalog document)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// The enricher works in its own shape: series is an ARRAY, records are handle-
+// keyed with no _id/type, and several working-only fields (funkoNumberFromTitle,
+// raw price, imageName, funkoSource) exist as scaffolding. The base catalog the
+// app ships and reads is a different shape: _id "catalog::{handle}", type
+// "catalog", series flattened to a single string, plus derived fields
+// (isExclusive/isChase/exclusiveRetailer/seriesNumber/category) and the
+// scaffolding dropped.
+//
+// Historically that translation happened later, in the Android CatalogImporter /
+// build_base_catalog.py. Doing it HERE means `node enrich.js --base-shape` emits
+// a file that IS a base catalog: no downstream reshape, and the derivations run
+// once, at scrape time (richer signal), instead of being recomputed from strings
+// at import. The derivation logic below is ported verbatim from
+// CatalogMapper.deriveSeriesFields so behaviour matches the app exactly.
+
+// Ported from CatalogMapper.EXCLUSIVE_KEYWORDS
+const EXCLUSIVE_KEYWORDS = [
+  'exclusive', 'funko-shop', 'sdcc', 'nycc', 'eccc', 'c2e2',
+  'target', 'gamestop', 'walmart', 'amazon', 'hot topic',
+  'box lunch', 'boxlunch', 'entertainment earth', 'walgreens',
+  'fye', 'best buy', 'barnes', 'bam', 'primark', 'fanatics',
+];
+
+// Ported from CatalogMapper.RETAILER_MAP (insertion order preserved — the first
+// keyword that appears in a tag wins, exactly as the Kotlin for-loop does).
+const RETAILER_MAP = [
+  ['target', 'Target'], ['gamestop', 'GameStop'], ['walmart', 'Walmart'],
+  ['amazon', 'Amazon'], ['hot topic', 'Hot Topic'], ['box lunch', 'BoxLunch'],
+  ['boxlunch', 'BoxLunch'], ['entertainment earth', 'Entertainment Earth'],
+  ['walgreens', 'Walgreens'], ['fye', 'FYE'], ['best buy', 'Best Buy'],
+  ['barnes', 'Barnes & Noble'], ['funko-shop', 'Funko Shop'], ['sdcc', 'SDCC'],
+  ['nycc', 'NYCC'], ['eccc', 'ECCC'], ['c2e2', 'C2E2'], ['bam', 'Books-A-Million'],
+  ['primark', 'Primark'], ['fanatics', 'Fanatics'],
+];
+
+const NUMBER_REGEX_BASE = /#\d+/;
+
+function isExclusiveSeries(s) {
+  const lc = String(s || '').toLowerCase();
+  return EXCLUSIVE_KEYWORDS.some(k => lc.includes(k));
+}
+
+function extractRetailer(seriesList) {
+  for (const tag of seriesList) {
+    const lower = String(tag || '').toLowerCase();
+    for (const [key, name] of RETAILER_MAP) {
+      if (lower.includes(key)) return name;
+    }
+  }
+  return 'Exclusive';
+}
+
+// Ported verbatim from CatalogMapper.deriveSeriesFields.
+function deriveSeriesFields(seriesList, title) {
+  const list = Array.isArray(seriesList) ? seriesList : (seriesList ? [seriesList] : []);
+
+  const primarySeries = list.find(s =>
+    !/^pop!/i.test(s) &&
+    s.toLowerCase() !== 'pop! vinyl' &&
+    !isExclusiveSeries(s) &&
+    s.toLowerCase() !== 'chase pieces'
+  ) || list[0] || '';
+
+  const category = list.find(s =>
+    /^pop!/i.test(s) &&
+    s.toLowerCase() !== 'pop! vinyl' &&
+    s.toLowerCase() !== 'pop!'
+  ) || '';
+
+  const isExclusive       = list.some(isExclusiveSeries);
+  const exclusiveRetailer = isExclusive ? extractRetailer(list) : '';
+  const isChase           = list.some(s => s.toLowerCase() === 'chase pieces');
+  const numMatch          = NUMBER_REGEX_BASE.exec(title || '');
+  const seriesNumber      = numMatch ? numMatch[0] : '';
+
+  return { primarySeries, category, isExclusive, exclusiveRetailer, isChase, seriesNumber };
+}
+
+// Working-only fields the base catalog never carries — dropped on output.
+const BASE_DROP_FIELDS = new Set([
+  'funkoNumberFromTitle', 'price', 'imageName', 'funkoSource',
+  'kennySource', 'hdbChecked', 'priceCheckedAt', 'popsOnly',
+]);
+
+/**
+ * Reshape the enriched record set into the base catalog document shape, in
+ * place. Idempotent: a record already in base shape (string series, has _id) is
+ * left materially unchanged. Returns the count reshaped.
+ */
+function toBaseCatalogShape(enriched, opts = {}) {
+  console.log('\n── Output: base catalog shape ────────────────────────────────');
+  const source = opts.catalogSource || 'ENRICHED';
+  const today  = new Date().toISOString().slice(0, 10);
+  let n = 0;
+
+  for (let i = 0; i < enriched.length; i++) {
+    const r = enriched[i];
+    const handle = (r.handle || '').trim();
+    if (!handle) continue;   // a record with no handle can't be a catalog doc
+
+    const seriesArr = Array.isArray(r.series) ? r.series
+                    : (typeof r.series === 'string' && r.series ? [r.series] : []);
+    const d = deriveSeriesFields(seriesArr, r.title || '');
+
+    // Build the base document. Keep every enriched field the base carries, add
+    // the identity + derived fields, flatten series, drop scaffolding.
+    const out = { ...r };
+    for (const f of BASE_DROP_FIELDS) delete out[f];
+
+    out._id               = r._id && String(r._id).startsWith('catalog::')
+                              ? r._id : `catalog::${handle}`;
+    out.type              = 'catalog';
+    out.handle            = handle;
+    out.series            = d.primarySeries;          // ARRAY → STRING
+    out.category          = (r.category && String(r.category).trim()) || d.category;
+    // Derive identity flags only when the record doesn't already carry a real
+    // value (never clobber a value an upstream source set deliberately).
+    out.isExclusive       = typeof r.isExclusive === 'boolean' ? r.isExclusive : d.isExclusive;
+    out.exclusiveRetailer = r.exclusiveRetailer || (out.isExclusive ? d.exclusiveRetailer : '');
+    out.isChase           = typeof r.isChase === 'boolean' ? r.isChase : d.isChase;
+    out.seriesNumber      = (r.seriesNumber && String(r.seriesNumber).trim()) || d.seriesNumber;
+    out.isVaulted         = typeof r.isVaulted === 'boolean' ? r.isVaulted : false;
+    out.retailPrice       = typeof r.retailPrice === 'number' ? r.retailPrice
+                              : (parseFloat(String(r.price || '').replace(/[^0-9.]/g, '')) || 0);
+    out.source            = r.source || source;
+    out.lastUpdated       = r.lastUpdated || today;
+
+    enriched[i] = out;
+    n++;
+  }
+  console.log(`  Records reshaped to base catalog format: ${n}`);
+  return n;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // Main
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2928,7 +3110,7 @@ async function main() {
   // same first N candidates forever and never reach the stragglers beyond the cap.
   // So: unless --input was given explicitly, if a prior enriched output exists and
   // is at least as large as the base, resume from IT. This makes each run ADVANCE
-  // through the backlog (and re-runs converge on full coverage). Pass 1/2/3b only
+  // through the backlog (and re-runs converge on full coverage). Pass 2/3b only
   // ADD records and dedupe, so resuming never loses anything.
   let inputPath = path.resolve(opts.input);
   if (!opts.inputExplicit) {
@@ -2997,20 +3179,12 @@ async function main() {
 
   const stats = {
     initial:      existingData.length,
-    kenny:        { newCount: 0, enrichedCount: 0 },
     funko:        { totalScraped: 0, newCount: 0, enrichedCount: 0 },
     pricecharting:{ found: 0, notFound: 0, errors: 0 },
     pricechartingCrawl:{ discovered: 0, added: 0, pages: 0, withUpc: 0 },
     hobbydb:      { found: 0, notFound: 0, errors: 0 },
     funkoDetail:  { enriched: 0, notFound: 0, errors: 0 },
   };
-
-  // Pass 1 — Kenny Chan
-  if (!opts.skipKenny) {
-    stats.kenny = await passKennyChan(enriched, titleIndex, handleIndex);
-  } else {
-    console.log('\n── Pass 1: Kenny Chan — SKIPPED (--skip-kenny)');
-  }
 
   // Pass 2 — funko.com
   if (!opts.skipFunko) {
@@ -3122,6 +3296,13 @@ async function main() {
   }
   console.log(`  priceSource: ${pricedCount} priced, ${pendingCount} pending (app live-tier fill)`);
 
+  // 7. Reshape to the base catalog document format by default, so the output IS
+  //    a base file (catalog:: ids, string series, derived identity fields, no
+  //    scaffolding). Pass --working-shape to emit the raw enricher shape instead.
+  if (!opts.workingShape) {
+    toBaseCatalogShape(enriched, { catalogSource: opts.catalogSource });
+  }
+
   // Write output
   const outputPath = path.resolve(opts.output);
   fs.writeFileSync(outputPath, JSON.stringify(enriched, null, 2), 'utf8');
@@ -3129,9 +3310,6 @@ async function main() {
   const elapsed = Math.round((Date.now() - startTime) / 1000);
   console.log('\n═══ Final Summary ══════════════════════════════════════════');
   console.log(`  Initial records:          ${stats.initial}`);
-  console.log(`  Pass 1 — Kenny Chan:`);
-  console.log(`    New records added:      ${stats.kenny.newCount}`);
-  console.log(`    Existing enriched:      ${stats.kenny.enrichedCount}`);
   console.log(`  Pass 2 — funko.com:`);
   console.log(`    Pages scraped:          ${stats.funko.totalScraped} products`);
   console.log(`    New records added:      ${stats.funko.newCount}`);

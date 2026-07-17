@@ -1,0 +1,714 @@
+{
+ "no_overlap": [
+  {
+   "_id": "catalog::90849.html",
+   "title": "Venom (Marvel Rivals)",
+   "record_number": "916",
+   "pc_slug": "venomized-doctor-doom",
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/venomized-doctor-doom-916",
+   "pricechartingId": "7517110",
+   "series": "Video Games"
+  },
+  {
+   "_id": "catalog::94351.html",
+   "title": "Will (Tales from '85)",
+   "record_number": "485",
+   "pc_slug": "chilly-willy-frozen",
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-animation/chilly-willy-frozen-485",
+   "pricechartingId": "7468527",
+   "series": "SciFi"
+  },
+  {
+   "_id": "catalog::80039.html",
+   "title": "Harry (Beanie on Fire)",
+   "record_number": "3",
+   "pc_slug": "hermione-granger",
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-harry-potter/hermione-granger-3",
+   "pricechartingId": "7523749",
+   "series": "Movies & TV"
+  },
+  {
+   "_id": "catalog::86512.html",
+   "title": "Ram",
+   "record_number": "65",
+   "pc_slug": "bram-stoker",
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-icons/bram-stoker-65",
+   "pricechartingId": "7524882",
+   "series": "Anime & Manga"
+  },
+  {
+   "_id": "catalog::87934.html",
+   "title": "H.E.R.B.I.E. (Fantastic Four: First Steps)",
+   "record_number": "1504",
+   "pc_slug": "herbie",
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/herbie-1504",
+   "pricechartingId": "10852292",
+   "series": "Comics & Superheroes"
+  },
+  {
+   "_id": "catalog::93001.html",
+   "title": "Poe",
+   "record_number": "83",
+   "pc_slug": "poet-anderson",
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-animation/poet-anderson-83",
+   "pricechartingId": "7468086",
+   "series": "Sports"
+  }
+ ],
+ "partial": [
+  {
+   "_id": "catalog::92033.html",
+   "title": "Chopper (Going Merry) (Flocked)",
+   "record_number": "1883",
+   "pc_slug": "tony-tony-chopper-flocked",
+   "slug_extra_words": [
+    "tony"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-television/tony-tony-chopper-flocked-1883"
+  },
+  {
+   "_id": "catalog::90458.html",
+   "title": "Alligator",
+   "record_number": "901",
+   "pc_slug": "alligator-loki",
+   "slug_extra_words": [
+    "loki"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/alligator-loki-901"
+  },
+  {
+   "_id": "catalog::83964.html",
+   "title": "Spider-Man (No Way Home Suit) (Brand New Day)",
+   "record_number": "223",
+   "pc_slug": "spider-man-homemade-suit",
+   "slug_extra_words": [
+    "homemade"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/spider-man-homemade-suit-223"
+  },
+  {
+   "_id": "catalog::83965.html",
+   "title": "Hulk (Brand New Day)",
+   "record_number": "1321",
+   "pc_slug": "hulk-holiday",
+   "slug_extra_words": [
+    "holiday"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/hulk-holiday-1321"
+  },
+  {
+   "_id": "catalog::92730.html",
+   "title": "Kylian Mbappé",
+   "record_number": "21",
+   "pc_slug": "kylian-mbappe",
+   "slug_extra_words": [
+    "mbappe"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-soccer/kylian-mbappe-21"
+  },
+  {
+   "_id": "catalog::90767.html",
+   "title": "Woody (Toy Story 5)",
+   "record_number": "522",
+   "pc_slug": "sheriff-woody",
+   "slug_extra_words": [
+    "sheriff"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-disney/sheriff-woody-522"
+  },
+  {
+   "_id": "catalog::90638.html",
+   "title": "Erza",
+   "record_number": "284",
+   "pc_slug": "erza-scarlet",
+   "slug_extra_words": [
+    "scarlet"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-animation/erza-scarlet-284"
+  },
+  {
+   "_id": "catalog::91682.html",
+   "title": "Vegito (Powering Up)",
+   "record_number": "491",
+   "pc_slug": "super-saiyan-vegito",
+   "slug_extra_words": [
+    "saiyan",
+    "super"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-animation/super-saiyan-vegito-491"
+  },
+  {
+   "_id": "catalog::93276.html",
+   "title": "Rebecca",
+   "record_number": "443",
+   "pc_slug": "rebecca-cunningham",
+   "slug_extra_words": [
+    "cunningham"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-disney/rebecca-cunningham-443"
+  },
+  {
+   "_id": "catalog::93359.html",
+   "title": "Plo Koon (Glow)",
+   "record_number": "852",
+   "pc_slug": "plo-koon-glow-in-the-dark%e2%81%a0",
+   "slug_extra_words": [
+    "dark"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-star-wars/plo-koon-glow-in-the-dark%e2%81%a0-852"
+  },
+  {
+   "_id": "catalog::90847.html",
+   "title": "Peni Parker's SP//dr (Marvel Rivals)",
+   "record_number": "1219",
+   "pc_slug": "peni-parker%27s-spdr",
+   "slug_extra_words": [
+    "27s",
+    "spdr"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/peni-parker%27s-spdr-1219"
+  },
+  {
+   "_id": "catalog::94346.html",
+   "title": "Eleven (Tales from '85)",
+   "record_number": "1185",
+   "pc_slug": "byers-house-eleven",
+   "slug_extra_words": [
+    "byers",
+    "house"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-television/byers-house-eleven-1185"
+  },
+  {
+   "_id": "catalog::94347.html",
+   "title": "Mike (Tales from '85)",
+   "record_number": "",
+   "pc_slug": "freddy-funko-as-mike-se",
+   "slug_extra_words": [
+    "freddy"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-freddy-funko/freddy-funko-as-mike-se"
+  },
+  {
+   "_id": "catalog::90357.html",
+   "title": "Maul",
+   "record_number": "705",
+   "pc_slug": "darth-maul-on-bloodfin-speeder",
+   "slug_extra_words": [
+    "bloodfin",
+    "darth",
+    "speeder"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-star-wars/darth-maul-on-bloodfin-speeder-705"
+  },
+  {
+   "_id": "catalog::90443.html",
+   "title": "The Mandalorian with Grogu (On Back)",
+   "record_number": "579",
+   "pc_slug": "the-mandalorian-on-speeder-with-grogu",
+   "slug_extra_words": [
+    "speeder"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-star-wars/the-mandalorian-on-speeder-with-grogu-579"
+  },
+  {
+   "_id": "catalog::95803.html",
+   "title": "Baby (Soda Pop)",
+   "record_number": "599",
+   "pc_slug": "robin-with-baby",
+   "slug_extra_words": [
+    "robin"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-television/robin-with-baby-599"
+  },
+  {
+   "_id": "catalog::90646.html",
+   "title": "Nico Robin (Hana Hana no Mi)",
+   "record_number": "132",
+   "pc_slug": "nico-robin-with-mini-merry-ii",
+   "slug_extra_words": [
+    "merry",
+    "mini"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-rides/nico-robin-with-mini-merry-ii-132"
+  },
+  {
+   "_id": "catalog::92389.html",
+   "title": "De'Aaron Fox (2025 Icon Edition Uniform)",
+   "record_number": "203",
+   "pc_slug": "de%27aaron-fox",
+   "slug_extra_words": [
+    "27aaron"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-basketball/de%27aaron-fox-203"
+  },
+  {
+   "_id": "catalog::86268.html",
+   "title": "Pumpkinhead",
+   "record_number": "266",
+   "pc_slug": "neighbor-pumpkinhead",
+   "slug_extra_words": [
+    "neighbor"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-games/neighbor-pumpkinhead-266"
+  },
+  {
+   "_id": "catalog::90303.html",
+   "title": "The Joker (Batman Ninja)",
+   "record_number": "280",
+   "pc_slug": "batman-vs-the-joker-batman-1989",
+   "slug_extra_words": [
+    "1989"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-heroes/batman-vs-the-joker-batman-1989-280"
+  },
+  {
+   "_id": "catalog::88407.html",
+   "title": "King Ghidorah",
+   "record_number": "1668",
+   "pc_slug": "mecha-king-ghidorah",
+   "slug_extra_words": [
+    "mecha"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-movies/mecha-king-ghidorah-1668"
+  },
+  {
+   "_id": "catalog::88980.html",
+   "title": "Miles Morales (Vibranium Suit)",
+   "record_number": "773",
+   "pc_slug": "miles-morales-programmable-matter-suit",
+   "slug_extra_words": [
+    "matter",
+    "programmable"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/miles-morales-programmable-matter-suit-773"
+  },
+  {
+   "_id": "catalog::92046.html",
+   "title": "The Creature",
+   "record_number": "116",
+   "pc_slug": "creature-from-the-black-lagoon",
+   "slug_extra_words": [
+    "black",
+    "from",
+    "lagoon"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-movies/creature-from-the-black-lagoon-116"
+  },
+  {
+   "_id": "catalog::86369.html",
+   "title": "Batman (DC New Classics)",
+   "record_number": "1",
+   "pc_slug": "batman-sdcc",
+   "slug_extra_words": [
+    "sdcc"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-8-bit/batman-sdcc-1"
+  },
+  {
+   "_id": "catalog::86371.html",
+   "title": "Wonder Woman (DC New Classics)",
+   "record_number": "8",
+   "pc_slug": "wonder-woman-dc-super-heroes",
+   "slug_extra_words": [
+    "heroes",
+    "super"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-heroes/wonder-woman-dc-super-heroes-8"
+  },
+  {
+   "_id": "catalog::88532.html",
+   "title": "Edison",
+   "record_number": "840",
+   "pc_slug": "annie-edison",
+   "slug_extra_words": [
+    "annie"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-television/annie-edison-840"
+  },
+  {
+   "_id": "catalog::86262.html",
+   "title": "Mark",
+   "record_number": "1405",
+   "pc_slug": "iron-man-mark-1",
+   "slug_extra_words": [
+    "iron",
+    "man"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/iron-man-mark-1-1405"
+  },
+  {
+   "_id": "catalog::88157.html",
+   "title": "Sweet",
+   "record_number": "161",
+   "pc_slug": "sweet-tooth",
+   "slug_extra_words": [
+    "tooth"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-games/sweet-tooth-161"
+  },
+  {
+   "_id": "catalog::89331.html",
+   "title": "Rowdy",
+   "record_number": "147",
+   "pc_slug": "rowdy-roddy-piper",
+   "slug_extra_words": [
+    "piper",
+    "roddy"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-wwe/rowdy-roddy-piper-147"
+  },
+  {
+   "_id": "catalog::89350.html",
+   "title": "Viktor",
+   "record_number": "248",
+   "pc_slug": "viktor-krum-with-shark-head",
+   "slug_extra_words": [
+    "head",
+    "krum",
+    "shark"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-digital/viktor-krum-with-shark-head-248"
+  },
+  {
+   "_id": "catalog::86679.html",
+   "title": "Wednesday Addams (Black Coat)",
+   "record_number": "811",
+   "pc_slug": "wednesday-addams-black-white",
+   "slug_extra_words": [
+    "white"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-television/wednesday-addams-black-white-811"
+  },
+  {
+   "_id": "catalog::88467.html",
+   "title": "Al (Chicken Suit) (30th Anniversary)",
+   "record_number": "248",
+   "pc_slug": "all-might-funimation-25th-anniversary",
+   "slug_extra_words": [
+    "25th",
+    "all",
+    "funimation",
+    "might"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-animation/all-might-funimation-25th-anniversary-248"
+  },
+  {
+   "_id": "catalog::90667.html",
+   "title": "Okarun",
+   "record_number": "2100",
+   "pc_slug": "okarun-transformed",
+   "slug_extra_words": [
+    "transformed"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-animation/okarun-transformed-2100"
+  },
+  {
+   "_id": "catalog::84907.html",
+   "title": "Killer",
+   "record_number": "636",
+   "pc_slug": "hero-killer-stain",
+   "slug_extra_words": [
+    "hero",
+    "stain"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-animation/hero-killer-stain-636"
+  },
+  {
+   "_id": "catalog::84943.html",
+   "title": "Shego (Glow)",
+   "record_number": "1582",
+   "pc_slug": "shego-glow-in-the-dark",
+   "slug_extra_words": [
+    "dark"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-disney/shego-glow-in-the-dark-1582"
+  },
+  {
+   "_id": "catalog::83515.html",
+   "title": "Ra's al Ghul (Batman: The Animated Series)",
+   "record_number": "345",
+   "pc_slug": "ra%27s-al-ghul",
+   "slug_extra_words": [
+    "27s"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-heroes/ra%27s-al-ghul-345"
+  },
+  {
+   "_id": "catalog::83907.html",
+   "title": "Julio Rodríguez",
+   "record_number": "111",
+   "pc_slug": "julio-rodr%c3%adguez",
+   "slug_extra_words": [
+    "adguez"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-mlb/julio-rodr%c3%adguez-111"
+  },
+  {
+   "_id": "catalog::75374.html",
+   "title": "Freddie Mercury (We Will Rock You Tour)",
+   "record_number": "",
+   "pc_slug": "freddie-mercury-brian-may-john-deacon-roger-taylor-4-pack",
+   "slug_extra_words": [
+    "brian",
+    "deacon",
+    "john",
+    "may",
+    "pack",
+    "roger",
+    "taylor"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-rocks/freddie-mercury-brian-may-john-deacon-roger-taylor-4-pack"
+  },
+  {
+   "_id": "catalog::81204.html",
+   "title": "Tiger",
+   "record_number": "1218",
+   "pc_slug": "atrociraptor-tiger",
+   "slug_extra_words": [
+    "atrociraptor"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-movies/atrociraptor-tiger-1218"
+  },
+  {
+   "_id": "catalog::80707.html",
+   "title": "Art the Clown (Bloody)",
+   "record_number": "1593",
+   "pc_slug": "art-the-clown-with-glasses-bloody",
+   "slug_extra_words": [
+    "glasses"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-movies/art-the-clown-with-glasses-bloody-1593"
+  },
+  {
+   "_id": "catalog::82499.html",
+   "title": "Iron Man (Marvel New Classics)",
+   "record_number": "11",
+   "pc_slug": "iron-man-11c",
+   "slug_extra_words": [
+    "11c"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-classics/iron-man-11c"
+  },
+  {
+   "_id": "catalog::75375.html",
+   "title": "Freddie Mercury (I Was Born to Love You)",
+   "record_number": "",
+   "pc_slug": "freddie-mercury-brian-may-john-deacon-roger-taylor-4-pack",
+   "slug_extra_words": [
+    "brian",
+    "deacon",
+    "john",
+    "may",
+    "pack",
+    "roger",
+    "taylor"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-rocks/freddie-mercury-brian-may-john-deacon-roger-taylor-4-pack"
+  },
+  {
+   "_id": "catalog::75780.html",
+   "title": "Hulk Hogan (Tearing Shirt)",
+   "record_number": "11",
+   "pc_slug": "hulk-hogan-yellow-shirt",
+   "slug_extra_words": [
+    "yellow"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-wwe/hulk-hogan-yellow-shirt-11"
+  },
+  {
+   "_id": "catalog::40631.html",
+   "title": "Pennywise Funhouse",
+   "record_number": "10",
+   "pc_slug": "demonic-pennywise-&-funhouse",
+   "slug_extra_words": [
+    "demonic"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-town/demonic-pennywise-&-funhouse-10"
+  },
+  {
+   "_id": "catalog::59624.html",
+   "title": "Minnie",
+   "record_number": "",
+   "pc_slug": "mickey-minnie-donald-daisy",
+   "slug_extra_words": [
+    "daisy",
+    "donald",
+    "mickey"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-disney/mickey-minnie-donald-daisy"
+  },
+  {
+   "_id": "catalog::63983.html",
+   "title": "Tiffany",
+   "record_number": "",
+   "pc_slug": "chucky-and-tiffany",
+   "slug_extra_words": [
+    "chucky"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-bitty/chucky-and-tiffany"
+  },
+  {
+   "_id": "catalog::63984.html",
+   "title": "Hannibal",
+   "record_number": "788",
+   "pc_slug": "hannibal-lecter-bloody",
+   "slug_extra_words": [
+    "bloody",
+    "lecter"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-movies/hannibal-lecter-bloody-788"
+  },
+  {
+   "_id": "catalog::63962.html",
+   "title": "Oogie Boogie (Black Light)",
+   "record_number": "39",
+   "pc_slug": "oogie-boogie-blacklight",
+   "slug_extra_words": [
+    "blacklight"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-disney/oogie-boogie-blacklight-39"
+  },
+  {
+   "_id": "catalog::59623.html",
+   "title": "Mickey",
+   "record_number": "19",
+   "pc_slug": "mickey-in-steamboat-car",
+   "slug_extra_words": [
+    "car",
+    "steamboat"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-trains/mickey-in-steamboat-car-19"
+  },
+  {
+   "_id": "catalog::49304.html",
+   "title": "Shaquille O'Neal",
+   "record_number": "2",
+   "pc_slug": "shaquille-o%27neal",
+   "slug_extra_words": [
+    "27neal"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-magazine-covers/shaquille-o%27neal-2"
+  },
+  {
+   "_id": "catalog::47802.html",
+   "title": "Skating Stuart",
+   "record_number": "902",
+   "pc_slug": "roller-skating-stuart",
+   "slug_extra_words": [
+    "roller"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-movies/roller-skating-stuart-902"
+  },
+  {
+   "_id": "catalog::5902.html",
+   "title": "Quidditch Harry",
+   "record_number": "142",
+   "pc_slug": "ron-weasley-with-quality-quidditch-supplies",
+   "slug_extra_words": [
+    "quality",
+    "ron",
+    "supplies",
+    "weasley"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-harry-potter/ron-weasley-with-quality-quidditch-supplies-142"
+  },
+  {
+   "_id": "catalog::93539.html",
+   "title": "Chun-Li",
+   "record_number": "",
+   "pc_slug": "captain-marvel-vs-chun-li-2-pack",
+   "slug_extra_words": [
+    "captain",
+    "marvel",
+    "pack"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/captain-marvel-vs-chun-li-2-pack"
+  },
+  {
+   "_id": "catalog::93676.html",
+   "title": "Mega Man X",
+   "record_number": "",
+   "pc_slug": "rocket-vs-mega-man-x-2-pack",
+   "slug_extra_words": [
+    "pack",
+    "rocket"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-games/rocket-vs-mega-man-x-2-pack"
+  },
+  {
+   "_id": "catalog::92438.html",
+   "title": "Batman (Bat-Manga! Black and White)",
+   "record_number": "58",
+   "pc_slug": "white-lantern-batman-gitd",
+   "slug_extra_words": [
+    "gitd",
+    "lantern"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-heroes/white-lantern-batman-gitd-58"
+  },
+  {
+   "_id": "catalog::88518.html",
+   "title": "Superman (This Looks Like a Job For)",
+   "record_number": "582",
+   "pc_slug": "superman-and-the-fortress-of-solitude",
+   "slug_extra_words": [
+    "fortress",
+    "solitude"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-moment/superman-and-the-fortress-of-solitude-582"
+  },
+  {
+   "_id": "catalog::93635.html",
+   "title": "The Doctor",
+   "record_number": "916",
+   "pc_slug": "venomized-doctor-doom",
+   "slug_extra_words": [
+    "doom",
+    "venomized"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/venomized-doctor-doom-916"
+  },
+  {
+   "_id": "catalog::88085.html",
+   "title": "Batman/Robin (Tim Drake)",
+   "record_number": "603",
+   "pc_slug": "batmanrobin-tim-drake",
+   "slug_extra_words": [
+    "batmanrobin"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-heroes/batmanrobin-tim-drake-603"
+  },
+  {
+   "_id": "catalog::88064.html",
+   "title": "Bob's Big Boy (Glitter)",
+   "record_number": "255",
+   "pc_slug": "bob%27s-big-boy",
+   "slug_extra_words": [
+    "27s"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-ad-icons/bob%27s-big-boy-255"
+  },
+  {
+   "_id": "catalog::88216.html",
+   "title": "Spider-Gwen (Deco)",
+   "record_number": "1499",
+   "pc_slug": "spider-gwen-deco-limited-edition-elite",
+   "slug_extra_words": [
+    "elite",
+    "limited"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-marvel/spider-gwen-deco-limited-edition-elite-1499"
+  },
+  {
+   "_id": "catalog::88062.html",
+   "title": "Mumm-Ra (Black Light)",
+   "record_number": "1705",
+   "pc_slug": "mumm-ra-blacklight",
+   "slug_extra_words": [
+    "blacklight"
+   ],
+   "pricechartingUrl": "https://www.pricecharting.com/game/funko-pop-television/mumm-ra-blacklight-1705"
+  }
+ ]
+}

@@ -1,0 +1,14 @@
+EVIL QUEEN merge: catalog::pc-10118182 -> catalog::81681.html
+  overwrote bad enrich value funkoNumber: '6' -> '1609'
+  overwrote bad enrich value pricechartingId: '7683891' -> '10118182'
+  overwrote bad enrich value pricechartingUrl: 'https://www.pricecharting.com/game/funko-pop-minis/snow-white-&-evil-queen-6' -> 'https://www.pricecharting.com/game/funko-pop-disney/evil-queen-1609'
+  overwrote bad enrich value series: 'Animation & Cartoons' -> 'Pop! Disney'
+  overwrote bad enrich value pcSeries: 'Disney' -> 'Snow White'
+  overwrote bad enrich value marketValueLoose: '10.00' -> '16.31'
+  overwrote bad enrich value marketValueComplete: '10.00' -> '23.00'
+  overwrote bad enrich value marketValueNew: '35.12' -> '27.19'
+EVIL QUEEN upc set to 889698816816 on catalog::81681.html
+ADDED catalog::castiel-funko's: "Castiel FunkO's" #95 upc=''
+ADDED catalog::mr.-toad-65th-anniversary: 'Mr. Toad (65th Anniversary)' #814 upc='889698511728'
+BELLE re-link: funko::889698575836 catalogRef 'catalog::belle' -> 'catalog::the-beast-and-belle'
+EVIL QUEEN re-link: funko::889698502702 catalogRef "catalog::evil-queen-funko's" -> 'catalog::81681.html'

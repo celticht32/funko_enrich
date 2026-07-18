@@ -1,0 +1,383 @@
+{
+  "catalog::88467.html": {
+    "action": "repoint",
+    "note": "Al McWhiggin (Al's Toy Barn), Toy Story 2. Enricher wrongly matched All Might #248 (MHA). Real: #1600 Pop! Disney/Pixar, Toy Story 30th Anniv. Retail-only prices seen ($14.99-17.25) = not market value, so pricing blanked.",
+    "set": {
+      "funkoNumber": "1600",
+      "seriesNumber": "#1600",
+      "franchiseSuggestion": "Toy Story",
+      "pcSeries": "Disney"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::92438.html": {
+    "action": "repoint",
+    "note": "Batman Bat-Manga B/W, ECCC 2026 excl, LE 500, Jiro Kuwata 1960s manga. Enricher wrongly matched White Lantern Batman GITD #58. Real #621. Secondary market $150-400 (range from eBay, not a PC loose/CIB/new triple) so pricing left blank per DEC-025 rather than stamping a point value.",
+    "set": {
+      "funkoNumber": "621",
+      "seriesNumber": "#621",
+      "franchiseSuggestion": "DC Super Heroes",
+      "isExclusive": true
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate"
+    ]
+  },
+  "catalog::5902.html": {
+    "action": "repoint",
+    "note": "Quidditch Harry, Pop! Movies HP #08, 2015 common, UPC 0849803059026. Enricher wrongly matched Ron Weasley w/ Quidditch Supplies #142. Market ~$10-20 (range), pricing left blank per DEC-025.",
+    "set": {
+      "funkoNumber": "8",
+      "seriesNumber": "#08",
+      "franchiseSuggestion": "Harry Potter",
+      "upc": "0849803059026"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate"
+    ]
+  },
+  "catalog::75374.html": {
+    "action": "repoint",
+    "note": "Freddie Mercury WWRY Tour, Pop! Rocks #414, yellow military jacket/cape. Enricher wrongly matched the Freddie/Brian/John/Roger 4-pack. Real solo #414. Market ~$12-17 (range), pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "414",
+      "seriesNumber": "#414",
+      "franchiseSuggestion": "Queen"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate"
+    ]
+  },
+  "catalog::75375.html": {
+    "action": "repoint",
+    "note": "Freddie Mercury I Was Born to Love You, Pop! Rocks (Queen), UPC 889698753753. Enricher wrongly matched the 4-pack. Box # not found in lookup - left blank rather than guessed (paired release with #414 WWRY but not confirmed). Pricing blank per DEC-025.",
+    "set": {
+      "franchiseSuggestion": "Queen",
+      "upc": "889698753753"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate"
+    ]
+  },
+  "catalog::59624.html": {
+    "action": "repoint",
+    "note": "Minnie, Disney Classics/Mickey & Friends #1188, UPC 889698596244. Enricher wrongly matched Mickey-Minnie-Donald-Daisy 4-pack. Market ~$12-15 (range), pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "1188",
+      "seriesNumber": "#1188",
+      "franchiseSuggestion": "Mickey & Friends",
+      "upc": "889698596244"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate"
+    ]
+  },
+  "catalog::63983.html": {
+    "action": "repoint",
+    "note": "Tiffany Valentine, Bride of Chucky #1250, solo. Enricher wrongly matched Chucky-and-Tiffany 2-pack. Pricing blank per DEC-025 (no clean market value found).",
+    "set": {
+      "funkoNumber": "1250",
+      "seriesNumber": "#1250",
+      "franchiseSuggestion": "Bride of Chucky"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate"
+    ]
+  },
+  "catalog::93539.html": {
+    "action": "repoint",
+    "note": "Chun-Li, Street Fighter 6, Pop! Games #1259, UPC 889698935395, Aug 2026. Enricher wrongly matched Captain Marvel vs Chun-Li 2-pack (and mis-set franchise Gamerverse). Retail $14.99 only = not market value, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "1259",
+      "seriesNumber": "#1259",
+      "franchiseSuggestion": "Street Fighter",
+      "upc": "889698935395"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::93676.html": {
+    "action": "repoint",
+    "note": "Mega Man X, Pop! Games #1280, UPC 889698936767. Enricher wrongly matched Rocket vs Mega Man X 2-pack. Pricing blank per DEC-025 (no clean market value).",
+    "set": {
+      "funkoNumber": "1280",
+      "seriesNumber": "#1280",
+      "franchiseSuggestion": "Mega Man",
+      "upc": "889698936767"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::86262.html": {
+    "action": "repoint",
+    "note": "Mark from LOVE ACTUALLY (cue-card scene) #1960, UPC 889698862622. Enricher matched iron-man-mark-1 #1405 AND overwrote franchise to Infinity Saga - both wrong, it is a person named Mark not Iron Man's armor mark. Retail only $11.79-14.99, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "1960",
+      "seriesNumber": "#1960",
+      "franchiseSuggestion": "Love Actually",
+      "upc": "889698862622"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::59623.html": {
+    "action": "repoint",
+    "note": "Mickey, Disney Classics/Mickey & Friends #1187, UPC 889698596237, 2022. Enricher matched mickey-in-steamboat-car #19 (a different Trains-line Mickey) - wrong. Pairs with Minnie #1188 same wave. Common retail, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "1187",
+      "seriesNumber": "#1187",
+      "franchiseSuggestion": "Mickey & Friends",
+      "upc": "889698596237"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::88518.html": {
+    "action": "repoint",
+    "note": "Superman This Looks Like a Job For, Pop! Heroes/Sayings #613, ECCC 2026 excl, LE 1500. Enricher matched superman-and-the-fortress-of-solitude #582 - wrong figure and number. Grail exclusive, no clean market triple, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "613",
+      "seriesNumber": "#613",
+      "franchiseSuggestion": "DC Super Heroes",
+      "isExclusive": true
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::88532.html": {
+    "action": "repoint",
+    "note": "Edison from ONE PIECE (Vegapunk satellite clone, Egghead Arc) Pop! Animation #2135, Amazon excl. Enricher matched annie-edison #840 (Community) AND set franchise Community - all wrong. My FIX-TITLE guess was wrong too. Retailer excl, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "2135",
+      "seriesNumber": "#2135",
+      "franchiseSuggestion": "One Piece",
+      "isExclusive": true
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::88157.html": {
+    "action": "repoint",
+    "note": "Sweet from BUFFY (jazz demon, Once More with Feeling) Pop! TV #1774, Funko Shop excl, has 1-in-6 chase (88157b, red suit) - this is the COMMON. Enricher matched sweet-tooth #161 (Twisted Metal) - wrong. On sale $10.49 retail, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "1774",
+      "seriesNumber": "#1774",
+      "franchiseSuggestion": "Buffy the Vampire Slayer",
+      "isExclusive": true
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::89331.html": {
+    "action": "repoint",
+    "note": "Rowdy = NFL Dallas Cowboys MASCOT, Pop! Football #314. Enricher matched rowdy-roddy-piper #147 (WWE) - wrong. $12.99-14.99 retail range, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "314",
+      "seriesNumber": "#314",
+      "franchiseSuggestion": "NFL"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::89350.html": {
+    "action": "repoint",
+    "note": "Viktor = NFL Minnesota Vikings MASCOT, Pop! Football #319, UPC 0889698893503. Enricher matched viktor-krum-with-shark-head #248 (Harry Potter) - wrong. $14.99 retail, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "319",
+      "seriesNumber": "#319",
+      "franchiseSuggestion": "NFL",
+      "upc": "0889698893503"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::84907.html": {
+    "action": "repoint",
+    "note": "Killer from ONE PIECE (masked, scythe-gauntlets) Pop! Animation #1895, Amazon excl. Enricher matched hero-killer-stain #636 (My Hero Academia) - wrong. Pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "1895",
+      "seriesNumber": "#1895",
+      "franchiseSuggestion": "One Piece",
+      "isExclusive": true
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::81204.html": {
+    "action": "repoint",
+    "note": "Tiger from AN AMERICAN TAIL (Fievel's cat friend) Pop! Movies #1654. Enricher matched atrociraptor-tiger #1218 (Jurassic World) on the word 'tiger' in a dino's name - wrong. $7.50-10 retail range, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "1654",
+      "seriesNumber": "#1654",
+      "franchiseSuggestion": "An American Tail"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::93635.html": {
+    "action": "repoint",
+    "note": "The Doctor from STAR TREK VOYAGER (EMH) Pop! TV #1928, UPC 889698936354, Aug 2026. Enricher matched venomized-doctor-doom #916 (Venom) on the word 'Doctor' - wrong. $14.99 retail, pricing blank per DEC-025.",
+    "set": {
+      "funkoNumber": "1928",
+      "seriesNumber": "#1928",
+      "franchiseSuggestion": "Star Trek",
+      "upc": "889698936354"
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "marketValueIsApproximate",
+      "pcSeries"
+    ]
+  },
+  "catalog::87934.html": {
+    "action": "fix-title-confirmed",
+    "note": "H.E.R.B.I.E. Fantastic Four First Steps robot, Pop! Marvel #1504, SDCC/Summer Conv excl, UPC 0889698879347. Enricher match to herbie #1504 was CORRECT - only right match in the FIX-TITLE bucket. Number/franchise kept; UPC added, marked exclusive. Pricing blanked to stay consistent (SDCC excl, no clean market triple confirmed) - REVISIT if herbie PC page had real values.",
+    "set": {
+      "funkoNumber": "1504",
+      "seriesNumber": "#1504",
+      "franchiseSuggestion": "Marvel",
+      "upc": "0889698879347",
+      "isExclusive": true,
+      "marketValueIsApproximate": false
+    },
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew",
+      "pcSeries"
+    ]
+  },
+  "catalog::kurogiri-toyzilla-signed-edition": {
+    "action": "restore-blank",
+    "note": "S23 signed edition, meant to stay unpriced (DEC-023/PC_SKIP_IDS). The full refresh RE-PRICED it (4.99/8.59/9.03) despite the skip-list - the recurrence bug in action. Blank pricing again to restore the S23 decision. Identity (#789 MHA) untouched. THIS ID MUST BE IN enrich.js PC_SKIP_IDS - verify it is.",
+    "set": {},
+    "blank": [
+      "pricechartingId",
+      "pricechartingUrl",
+      "marketValueLoose",
+      "marketValueComplete",
+      "marketValueNew"
+    ]
+  }
+}

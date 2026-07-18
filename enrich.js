@@ -921,6 +921,37 @@ const PC_SKIP_IDS = new Set([
   // made it look like a signed twin. It has been deleted; the real Bash lives at
   // catalog::bash-pop!-vinyl (Fortnite, Pop! Games, pcId 7516024) and is an
   // ordinary Pop that SHOULD be priced. See fix_bash_misidentification.py.
+  // ── S23 mismatch repoints: wrong PriceCharting slug matches, corrected by
+  //    hand and pricing blanked. Skip so a re-run does not re-match them. ──
+  'catalog::88467.html',                       // Al Chicken Suit->Toy Story #1600
+  'catalog::92438.html',                       // Batman Bat-Manga #621
+  'catalog::5902.html',                        // Quidditch Harry #08
+  'catalog::75374.html',                       // Freddie WWRY #414
+  'catalog::75375.html',                       // Freddie IWBTLY
+  'catalog::59624.html',                       // Minnie #1188
+  'catalog::63983.html',                       // Tiffany #1250
+  'catalog::93539.html',                       // Chun-Li #1259
+  'catalog::93676.html',                       // Mega Man X #1280
+  'catalog::86262.html',                       // Mark (Love Actually) #1960
+  'catalog::59623.html',                       // Mickey #1187
+  'catalog::88518.html',                       // Superman #613
+  'catalog::88532.html',                       // Edison (One Piece) #2135
+  'catalog::88157.html',                       // Sweet (Buffy) #1774
+  'catalog::89331.html',                       // Rowdy (NFL) #314
+  'catalog::89350.html',                       // Viktor (NFL) #319
+  'catalog::84907.html',                       // Killer (One Piece) #1895
+  'catalog::81204.html',                       // Tiger (American Tail) #1654
+  'catalog::93635.html',                       // The Doctor (Star Trek) #1928
+  'catalog::87934.html',                       // H.E.R.B.I.E. #1504
+  // ── S23 restored owned figures: real Pop! Disney records the dedup pass
+  //    removed, but the user OWNS them (catalogRef links + pricePaid). Skip
+  //    so dedup never removes them again. See CLAUDE_STATE restore note. ──
+  'catalog::pc-12395106',                      // Mia Thermopolis #1732
+  'catalog::pc-7488382',                       // Merida #1245
+  'catalog::pc-7488126',                       // Anna #1023
+  'catalog::pc-10538959',                      // Rapunzel #1641
+  'catalog::pc-10539028',                      // Maleficent #1648
+  'catalog::mr.-toad-65th-anniversary',        // Mr. Toad 65th #814
 ]);
 
 
@@ -2301,9 +2332,16 @@ function dedupeAndMerge(enriched) {
 
     // Found a title match — check it's actually a Pop! not a Mystery Mini etc.
     const hobbyRec = enriched[hobbyIdx];
-    const series = hobbyRec.series || [];
+    // Coerce series to an array before calling array methods on it. A base-catalog
+    // record carries `series` as a STRING ("Pop! Games"); the enricher's working
+    // shape carries an ARRAY. `|| []` only guards null/undefined — a string slips
+    // through, has a non-zero .length, skips the empty-branch, and then .some()
+    // throws "series.some is not a function". isNonPop() at ~L2514 already coerces
+    // the same way; this site was missed. (String -> [String], null -> [].)
+    const series = Array.isArray(hobbyRec.series) ? hobbyRec.series
+                 : hobbyRec.series ? [hobbyRec.series] : [];
     const isPop = series.length === 0 ||
-                  series.some(s => /^pop!/i.test(s) || /^funko pop/i.test(s));
+                  series.some(s => /^pop!/i.test(String(s)) || /^funko pop/i.test(String(s)));
     if (!isPop) { kept++; return; } // don't merge into Mystery Minis / Wacky Wobblers
 
     // Merge funko.com fields into HobbyDB record
@@ -2376,6 +2414,13 @@ function dedupeAndMerge(enriched) {
   let pcMerged = 0, pcKept = 0;
   enriched.forEach((rec, i) => {
     if (rec.funkoSource !== 'pricecharting' || toRemove.has(i)) return;
+    // Never remove a skip-listed record as a merge SOURCE. The index guard above
+    // keeps these out of canonicalByNum (so they are not merge TARGETS), but this
+    // second loop can still fold a pricecharting-source record into a twin and drop
+    // it. Six owned Pop! Disney figures (Mia/Merida/Anna/Rapunzel/Maleficent/Mr.Toad)
+    // were removed exactly this way in S23, orphaning the user's collection. Skip so
+    // they survive every future run.
+    if (PC_SKIP_IDS.has(rec._id)) { pcKept++; return; }
     const n = numOf(rec);
     const core = coreName(rec.title), coreNP = coreNoParens(rec.title);
     let matchIdx = -1;
@@ -2830,7 +2875,11 @@ function isNamedSetTag(tag) {
 // "Haunted Mansion Mini Vinyl Figures" is rarer than a broad line like "Disney
 // Mini Vinyl Figures"), using the supplied frequency map as the tiebreak.
 function pickSetTag(series, tagFreq) {
-  const cands = (series || []).filter(isNamedSetTag);
+  // Coerce to array: callers pass rec.series, which is a STRING in base-catalog
+  // shape and an ARRAY in working shape. `|| []` does not catch a string, so
+  // `.filter` throws "filter is not a function". Same fix as isNonPop()/L2521.
+  const arr = Array.isArray(series) ? series : (series ? [series] : []);
+  const cands = arr.filter(isNamedSetTag);
   if (cands.length === 0) return '';
   return cands.reduce((best, s) =>
     (tagFreq.get(s) || 0) < (tagFreq.get(best) || 0) ? s : best, cands[0]);

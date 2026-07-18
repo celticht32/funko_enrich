@@ -1,0 +1,45 @@
+fix_bash_misidentification.py -- 2026-07-17
+Input : funkodex_base_catalog.json (20566 records)
+
+==========================================================================
+DELETE  catalog::summer-bbq-bash
+  title was : 'Bash (Toyzilla Signed Edition)'
+  reason    : NON-POP. hobbyDB 339696 files it under Shirts and
+              Jackets. #623 and UPC 889698506939 were mis-stapled
+              from the real Bash Pop. The S23 'Toyzilla Signed
+              Edition' rename and MANUAL_VERIFIED stamp were wrong.
+
+==========================================================================
+RESTORE catalog::bash-pop!-vinyl (verbatim pre-delete state)
+  reason  : real Pop, deleted by fix_signed_editions.py on the
+            false premise that it duplicated a signed edition
+  image   : recovered (HobbyDB 848307, Bash_Vinyl_Art_Toys)
+  TITLE   'Bash Pop! Vinyl' -> 'Bash' (Kenny suffix dropped; matches PC page)
+--------------------------------------------------------------------------
+MERGE   catalog::pc-7516024 -> catalog::bash-pop!-vinyl
+  STUB    series                 <- 'Pop! Games'
+  STUB    category               <- Pop! Games
+  STUB    ebayEpid               <- 21063097627
+  STUB    franchiseSuggestion    <- Fortnite
+  STUB    pcSeries               <- Fortnite
+  STUB    pricechartingId        <- 7516024
+  STUB    publisher              <- Funko
+  STUB    releaseDate            <- 2020-01-01
+  STUB    seriesNumber           <- #623
+  STUB    marketValueLoose       <- 11.00
+  STUB    marketValueComplete    <- 12.78
+  STUB    marketValueNew         <- 12.78
+  SOURCE  -> MERGED
+  NOTE    pricing kept as-is ($11.00/$12.78/$12.78). Stale vs the
+          live page ($7.99/$12.00/$14.29) but the SAME product and
+          pcId, so it re-resolves on the next enrich. Not blanked:
+          there is no conflict here, just an older scrape.
+
+==========================================================================
+DELETE  catalog::pc-7516024 (merged into catalog::bash-pop!-vinyl)
+  20566 -> 20565 records
+
+VERIFIED OK -- 20565 records written to funkodex_base_catalog.json.bashfix
+
+REMINDER: remove 'catalog::summer-bbq-bash' from PC_SKIP_IDS in
+enrich.js. The restored Bash is a normal Pop and should be priced.

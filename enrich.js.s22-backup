@@ -875,56 +875,6 @@ function coreNameCovered(recTitle, rowName) {
 
 
 /**
- * Records that must NEVER be matched against PriceCharting, in EITHER direction.
- *
- * These are Toyzilla / Chuck Huber certified SIGNED editions (Kurogiri #789 and
- * Android 17 #529 — both Chuck Huber, who voices Dragon Ball / My Hero Academia
- * roles). Each is a real, distinct product that shares its base figure's UPC and
- * Pop number — correctly, because a signed Pop IS the base figure in its original
- * box with a signature and COA added, not a new SKU. (Do not let a future
- * UPC-mis-staple pass blank these barcodes: the sharing is legitimate, cf. the
- * S22 tiered UPC rule that spared ~258 legitimate shared UPCs.)
- *
- * They cannot be protected by matching logic. Verified in S23, not assumed:
- *   - coreNameCovered("Kurogiri", "kurogiri") === true. The word-boundary fix
- *     blocks WRONG-CHARACTER matches; this is a RIGHT-character, WRONG-PRODUCT
- *     match — the unfixable-from-text class (S22 open item #2).
- *   - Renaming the title to "Kurogiri (Toyzilla Signed Edition)" does NOT help:
- *     coreNameTokens() strips parentheticals (see above), so the title tokenises
- *     to exactly ["kurogiri"] — identical to the bare title. The rename is for
- *     humans reading the catalog; it is NOT a guard.
- *   - dedupeAndMerge's coreNoParens() strips them too, so a PriceCharting crawl
- *     row "Kurogiri #789" matches the signed record AND the base equally; which
- *     one wins is array order, not logic.
- *   - The UPC-first path in searchPriceCharting() is worse still: these carry the
- *     BASE figure's barcode, so a UPC lookup resolves to the base Pop by design.
- *
- * Without this list the pricing pass re-stamps the base figure's identity and its
- * ~$5 price onto a ~$95 signed collectible. Note the trap: these records have NO
- * price precisely because S23 blanked the wrongly-inherited base pricing
- * (DEC-025), and `!hasPrice` is exactly what makes a record a candidate in
- * passPriceCharting. The safe state is what pulls them in.
- *
- * Consequence, accepted deliberately: these records stay unpriced until a real
- * signed-market value is sourced from a listing or packaging. Blank beats wrong.
- *
- * Used in TWO places — grep PC_SKIP_IDS before changing either:
- *   1. passPriceCharting()  — candidate filter (never priced)
- *   2. dedupeAndMerge()     — canonicalByNum index (never a merge target)
- */
-const PC_SKIP_IDS = new Set([
-  'catalog::kurogiri-toyzilla-signed-edition',   // Kurogiri (Toyzilla Signed Edition) #789
-  'catalog::android-17-toyzilla-signed-edition', // Android 17 (Toyzilla Signed Edition) #529
-  // NOT catalog::summer-bbq-bash — that record was a mis-identification (S23).
-  // hobbyDB 339696 files it under Shirts and Jackets: it is APPAREL that had the
-  // real Bash Pop's #623 and UPC 889698506939 mis-stapled onto it, which is what
-  // made it look like a signed twin. It has been deleted; the real Bash lives at
-  // catalog::bash-pop!-vinyl (Fortnite, Pop! Games, pcId 7516024) and is an
-  // ordinary Pop that SHOULD be priced. See fix_bash_misidentification.py.
-]);
-
-
-/**
  * Search PriceCharting for a record and return the best-matching listing row
  * (with id, name, console, and inline prices). Uses the HTML search-products
  * page through the shared Puppeteer `page` (the JSON /api/products endpoint is
@@ -1152,13 +1102,6 @@ async function passPriceCharting(enriched, opts) {
   const candidates = enriched
     .map((rec, i) => ({ rec, i }))
     .filter(({ rec }) => {
-      // Signed/certified editions: never price-match. They share the base
-      // figure's UPC and name, so BOTH the title path and the UPC-first path
-      // resolve to the wrong product. See PC_SKIP_IDS for the verification.
-      // These records have no price *because* the wrong base pricing was
-      // deliberately blanked (DEC-025) — the !hasPrice test below is exactly
-      // what would drag them back in.
-      if (PC_SKIP_IDS.has(rec._id)) return false;
       const hasPrice = !!(rec.marketValueLoose || rec.marketValueComplete || rec.marketValueNew);
       const hasUpc   = !!(rec.upc && String(rec.upc).trim());
       if (!hasPrice) return true;            // never priced → look up
@@ -2362,13 +2305,6 @@ function dedupeAndMerge(enriched) {
   const canonicalByNum = new Map();
   enriched.forEach((r, i) => {
     if (r.funkoSource === 'pricecharting' || toRemove.has(i)) return;
-    // Signed/certified editions are never a merge TARGET. coreNoParens() strips
-    // parentheticals, so "Kurogiri (Toyzilla Signed Edition)" and base "Kurogiri"
-    // both reduce to "kurogiri" and share #789 — a PriceCharting crawl row for
-    // the base would merge into whichever landed in this bucket first (array
-    // order, not logic) and refill the base pricing S23 deliberately blanked.
-    // Keeping them out of the index means a base row can only match the base.
-    if (PC_SKIP_IDS.has(r._id)) return;
     const n = numOf(r);
     if (n) { if (!canonicalByNum.has(n)) canonicalByNum.set(n, []); canonicalByNum.get(n).push(i); }
   });

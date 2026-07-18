@@ -1,0 +1,203 @@
+merge_kenny_dupes.py -- 2026-07-17
+Input : funkodex_base_catalog.json (20579 records)
+
+==========================================================================
+SURVIVOR  catalog::santa-freddy-funko
+STUB      catalog::pc-7516153        override=stub_title
+--------------------------------------------------------------------------
+  TITLE    'Santa Freddy Funko' -> 'Santa Freddy'  (STUB WINS: Kenny title named the
+           Funko mascot; this record's UPC/#936/PC-Games say FNAF)
+  STUB     series               'Pop! Vinyl' -> 'Pop! Games'
+  STUB     pcSeries             None -> "Five Night's At Freddy's"
+  STUB     franchiseSuggestion  None -> "Five Night's At Freddy's"
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2023-01-01'
+  STUB     isExclusive True -> False, exclusiveRetailer 'Funko Shop' -> ''
+  STUB     pricechartingId      <- 7516153
+  STUB     ebayEpid             <- 18062071908
+  STUB     marketValueLoose     <- 13.27
+  STUB     marketValueComplete  <- 19.00
+  STUB     marketValueNew       <- 19.00
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::pixie-hanna-barbera
+STUB      catalog::pc-7468898        override=none
+--------------------------------------------------------------------------
+  TITLE    kept 'Pixie (Hanna-Barbera)'  (Kenny keeps punctuation; PC slugifies)
+  STUB     series               '' -> 'Pop! Animation'
+  STUB     pcSeries             None -> 'Huckleberry Hound'
+  STUB     franchiseSuggestion  None -> 'Huckleberry Hound'
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2020-01-01'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  STUB     pricechartingId      <- 7468898
+  STUB     ebayEpid             <- 2332799657
+  STUB     marketValueLoose     <- 16.00
+  STUB     marketValueComplete  <- 18.46
+  STUB     marketValueNew       <- 18.46
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::toshi-funko
+STUB      catalog::pc-7470202        override=none
+--------------------------------------------------------------------------
+  TITLE    kept 'Toshi (Funko)'  (Kenny keeps punctuation; PC slugifies)
+  STUB     series               'Pop! Vinyl' -> 'Pop! Around The World'
+  STUB     franchiseSuggestion  None -> 'Around The World'
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2020-01-01'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  STUB     pricechartingId      <- 7470202
+  STUB     ebayEpid             <- 27061752715
+  STUB     marketValueLoose     <- 31.80
+  STUB     marketValueComplete  <- 37.49
+  STUB     marketValueNew       <- 37.49
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::black-star
+STUB      catalog::pc-7468817        override=blank_price
+--------------------------------------------------------------------------
+  TITLE    kept 'Black Star'  (Kenny keeps punctuation; PC slugifies)
+  STUB     franchiseSuggestion  None -> 'Soul Eater'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  BLANK    ebayEpid             was '22061753099' (Kenny/stub disagree, unverifiable)
+  BLANK    marketValueLoose     was '35.00' (Kenny/stub disagree, unverifiable)
+  BLANK    marketValueComplete  was '63.64' (Kenny/stub disagree, unverifiable)
+  BLANK    marketValueNew       was '66.65' (Kenny/stub disagree, unverifiable)
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::the-dapper-dans-4-pack
+STUB      catalog::pc-7491159        override=none
+--------------------------------------------------------------------------
+  TITLE    kept 'The Dapper Dans (4-Pack)'  (Kenny keeps punctuation; PC slugifies)
+  STUB     pcSeries             None -> 'Disney Land: 65th Anniversary'
+  STUB     franchiseSuggestion  None -> 'Disney Land: 65th Anniversary'
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2019-01-01'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  STUB     pricechartingId      <- 7491159
+  STUB     marketValueLoose     <- 105.00
+  STUB     marketValueComplete  <- 124.00
+  STUB     marketValueNew       <- 124.00
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::sam-"mayday"-malone
+STUB      catalog::pc-7492539        override=none
+--------------------------------------------------------------------------
+  TITLE    kept 'Sam "Mayday" Malone'  (Kenny keeps punctuation; PC slugifies)
+  STUB     pcSeries             None -> 'Cheers'
+  STUB     franchiseSuggestion  None -> 'Cheers'
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2019-01-01'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  STUB     pricechartingId      <- 7492539
+  STUB     ebayEpid             <- 11061740403
+  STUB     marketValueLoose     <- 12.50
+  STUB     marketValueComplete  <- 15.95
+  STUB     marketValueNew       <- 15.95
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::more-cowbell!
+STUB      catalog::pc-7531644        override=none
+--------------------------------------------------------------------------
+  TITLE    kept 'More Cowbell!'  (Kenny keeps punctuation; PC slugifies)
+  STUB     series               'Pop! Vinyl' -> 'Pop! Snl'
+  STUB     pcSeries             None -> 'Saturday Night Live'
+  STUB     franchiseSuggestion  None -> 'Saturday Night Live'
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2018-01-01'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  STUB     pricechartingId      <- 7531644
+  STUB     ebayEpid             <- 3061757460
+  STUB     marketValueLoose     <- 19.99
+  STUB     marketValueComplete  <- 20.84
+  STUB     marketValueNew       <- 20.84
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::john-"soap"-mactavish
+STUB      catalog::pc-7515532        override=none
+--------------------------------------------------------------------------
+  TITLE    kept 'John "Soap" MacTavish'  (Kenny keeps punctuation; PC slugifies)
+  STUB     series               'Pop! Vinyl' -> 'Pop! Games'
+  STUB     pcSeries             None -> 'Call of Duty'
+  STUB     franchiseSuggestion  None -> 'Call of Duty'
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2016-01-01'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  STUB     pricechartingId      <- 7515532
+  STUB     ebayEpid             <- 6061764155
+  STUB     marketValueLoose     <- 60.00
+  STUB     marketValueComplete  <- 85.50
+  STUB     marketValueNew       <- 85.50
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::eleventh-doctor/mr.-clever
+STUB      catalog::pc-7492111        override=none
+--------------------------------------------------------------------------
+  TITLE    kept 'Eleventh Doctor/Mr. Clever'  (Kenny keeps punctuation; PC slugifies)
+  STUB     pcSeries             None -> 'Doctor Who'
+  STUB     franchiseSuggestion  None -> 'Doctor Who'
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2016-01-01'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  STUB     pricechartingId      <- 7492111
+  STUB     ebayEpid             <- 16061744342
+  STUB     marketValueLoose     <- 13.00
+  STUB     marketValueComplete  <- 14.75
+  STUB     marketValueNew       <- 14.75
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::samuel-"screech"-powers
+STUB      catalog::pc-7492078        override=none
+--------------------------------------------------------------------------
+  TITLE    kept 'Samuel "Screech" Powers'  (Kenny keeps punctuation; PC slugifies)
+  STUB     pcSeries             None -> 'Saved by the Bell'
+  STUB     franchiseSuggestion  None -> 'Saved by the Bell'
+  STUB     publisher            None -> 'Funko'
+  STUB     releaseDate          None -> '2016-01-01'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  STUB     pricechartingId      <- 7492078
+  STUB     ebayEpid             <- 3061757444
+  STUB     marketValueLoose     <- 15.00
+  STUB     marketValueComplete  <- 17.38
+  STUB     marketValueNew       <- 17.38
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::katniss-wedding-dress
+STUB      catalog::pc-7489644        override=kenny_price
+--------------------------------------------------------------------------
+  TITLE    kept 'Katniss (Wedding Dress)'  (Kenny keeps punctuation; PC slugifies)
+  STUB     series               'Pop! Vinyl' -> 'Pop! Movies'
+  KEEP     pcSeries 'The Hunger Games'  (stub's is wrong per live page)
+  STUB     franchiseSuggestion  None -> 'The Hunger Games'
+  KEEP     isExclusive False / exclusiveRetailer ''
+  KEEP     pricing + pcId/pcUrl (Kenny matches the live PC page)
+  SOURCE   -> MERGED
+
+==========================================================================
+SURVIVOR  catalog::great-white-shark-bloody
+STUB      catalog::pc-7523956        override=kenny_price
+--------------------------------------------------------------------------
+  TITLE    kept 'Great White Shark (Bloody)'  (Kenny keeps punctuation; PC slugifies)
+  STUB     series               'Pop! Vinyl' -> 'Pop! Movies'
+  KEEP     pcSeries 'Jaws. Target'  (stub's is wrong per live page)
+  STUB     franchiseSuggestion  None -> 'Jaws'
+  KEEP     isExclusive True / exclusiveRetailer 'Target'
+  KEEP     pricing + pcId/pcUrl (Kenny matches the live PC page)
+  SOURCE   -> MERGED
+
+==========================================================================
+DELETED 12 stub rows (merged into their survivors above)
+DELETED catalog::deadpool-venom (pure duplicate; survivor catalog::deadpool-/-venom keeps image)
+  20579 -> 20566 records
+
+VERIFIED OK -- 20566 records written to funkodex_base_catalog.json.merged

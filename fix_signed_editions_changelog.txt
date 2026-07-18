@@ -1,0 +1,46 @@
+fix_signed_editions.py -- 2026-07-17
+Input : funkodex_base_catalog.json (20580 records)
+
+========================================================================
+SIGNED  catalog::summer-bbq-bash
+BASE    catalog::bash-pop!-vinyl
+------------------------------------------------------------------------
+  TITLE   'Bash' -> 'Bash (Toyzilla Signed Edition)'
+          (cosmetic only -- coreNameTokens strips parentheticals;
+           the skip-list is what actually protects this record)
+  HARVEST imageUrl             <- https://images.hobbydb.com/processed_uploads/catalog_item_...
+  SOURCE  -> MANUAL_VERIFIED
+
+========================================================================
+SIGNED  catalog::kurogiri-toyzilla-signed-edition
+BASE    catalog::kurogiri
+------------------------------------------------------------------------
+  TITLE   'Kurogiri' -> 'Kurogiri (Toyzilla Signed Edition)'
+          (cosmetic only -- coreNameTokens strips parentheticals;
+           the skip-list is what actually protects this record)
+  HARVEST imageUrl             <- https://images.hobbydb.com/processed_uploads/catalog_item_...
+  HARVEST franchiseSuggestion  <- My Hero Academia
+  BLANK   marketValueLoose     was '4.99' (base-figure value)
+  BLANK   marketValueComplete  was '8.59' (base-figure value)
+  BLANK   marketValueNew       was '9.03' (base-figure value)
+  BLANK   pricechartingId      was '7468828' (base-figure value)
+  BLANK   pricechartingUrl     was 'https://www.pricecharting.com/game/funko-pop-animation/kurogiri-789' (base-figure value)
+  BLANK   ebayEpid             was '7061762334' (base-figure value)
+  SOURCE  -> MANUAL_VERIFIED
+
+========================================================================
+SIGNED  catalog::android-17-toyzilla-signed-edition
+BASE    catalog::android-17
+------------------------------------------------------------------------
+  TITLE   'Android 17' -> 'Android 17 (Toyzilla Signed Edition)'
+          (cosmetic only -- coreNameTokens strips parentheticals;
+           the skip-list is what actually protects this record)
+  HARVEST imageUrl             <- https://images.hobbydb.com/processed_uploads/catalog_item_...
+  HARVEST pcSeries             <- Dragon Ball Z
+  SOURCE  -> MANUAL_VERIFIED
+
+========================================================================
+DELETE  catalog::bash-pop!-vinyl (Kenny duplicate; image harvested above first)
+        20580 -> 20579 records
+
+VERIFIED OK -- 20579 records written to funkodex_base_catalog.json.signed

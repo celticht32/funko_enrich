@@ -21,7 +21,7 @@ USAGE (Windows), from the folder holding the enriched catalog:
     py build_catalog_asset.py
     py build_catalog_asset.py --check-only
     py build_catalog_asset.py --base funkodex_base_catalog.json ^
-                              --out  funkodex_base_catalog.json.gz
+                              --out  funkodex_base_catalog.json.gz_
 """
 
 from __future__ import annotations
@@ -29,7 +29,16 @@ import argparse, gzip, json, os, sys
 from collections import Counter
 
 DEF_BASE = "funkodex_base_catalog.json"
-DEF_OUT  = "funkodex_base_catalog.json.gz"
+# NOTE THE TRAILING UNDERSCORE — deliberate and load-bearing.
+# The file IS ordinary gzip; only the extension is odd. AGP's asset merger
+# DECOMPRESSES any `.gz` under app/src/main/assets and STRIPS the extension
+# during mergeXxxAssets (before AAPT2, and `gradlew clean` does not stop it).
+# Shipping this as `.gz` put an 18.1 MB decompressed .json in the APK instead of
+# the 2.0 MB gzip, so CatalogPreloader's assets.open("...json.gz") threw
+# FileNotFoundException and THE CATALOG NEVER LOADED ON ANY DEVICE — silently,
+# because name search falls back to the network when the local query is empty.
+# Must match CatalogPreloader.ASSET_NAME and the gradle `noCompress += "gz_"`.
+DEF_OUT  = "funkodex_base_catalog.json.gz_"
 
 UNRESOLVED = "__unresolved__"
 
@@ -43,7 +52,7 @@ def main():
     ap.add_argument("--base", default=DEF_BASE)
     ap.add_argument("--out",  default=DEF_OUT)
     ap.add_argument("--check-only", action="store_true",
-                    help="validate but don't write the .gz")
+                    help="validate but don't write the .gz_ asset")
     args = ap.parse_args()
 
     if not os.path.exists(args.base):
@@ -150,9 +159,21 @@ def main():
     print()
     print("Next:")
     print(f"  1. copy {args.out} to  app\\src\\main\\assets\\")
-    print( "  2. delete the old  app\\src\\main\\assets\\funko_data.json")
-    print( "  3. CatalogPreloader.CATALOG_VER is \"2\" — bump it again on the next")
-    print( "     catalog ship, or existing installs keep their loaded copy")
+    print( "     and DELETE any older funkodex_base_catalog.json.gz sitting there.")
+    print( "     An asset named .gz is DECOMPRESSED and RENAMED by AGP's merger")
+    print( "     (before AAPT2; gradlew clean does not stop it) — that is why this")
+    print( "     file ends in .gz_ and gradle sets noCompress += \"gz_\".")
+    print( "  2. bump CatalogPreloader.CATALOG_VER — installs keep their loaded")
+    print( "     copy until the version string changes.")
+    print( "  3. VERIFY the APK really contains it before shipping:")
+    print( "       [IO.Compression.ZipFile]::OpenRead(\"app-debug.apk\").Entries |")
+    print( "         Where-Object { $_.FullName -like \"assets/funkodex*\" }")
+    print(f"     Want {args.out} at ~{len(gz)/1e6:.1f} MB. A plain .json at ~18 MB")
+    print( "     means AGP ate it and the catalog will NOT load.")
+    print( "  4. Fresh-install and confirm logcat: \"Catalog loaded: <n> items\".")
+    print( "     A restore BYPASSES the preloader (the backup carries its own")
+    print( "     catalog). An AssetMissing warning = silent failure: name search")
+    print( "     falls back to the network, so the app still looks fine.")
 
 
 if __name__ == "__main__":

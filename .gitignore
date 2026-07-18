@@ -7,3 +7,8 @@ funko_data_enriched.json
 funko_data_enriched_NEW.json
 funko_data_enriched.json
 funko_data_enriched.json
+
+funkodex_base_catalog.enriched.json
+*.merged.json
+*.enriched.RESOLVED.json
+*.enriched.RESTORED.json

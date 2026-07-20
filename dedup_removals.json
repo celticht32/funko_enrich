@@ -1,0 +1,2479 @@
+[
+  {
+    "rule": "exact_core",
+    "removed": "The Mayor [Blacklight]",
+    "removedId": "catalog::pc-7484027",
+    "removedPcId": "7484027",
+    "removedUpc": "889698639613",
+    "into": "The Mayor [Diamond]",
+    "intoId": "catalog::pc-7484026",
+    "intoPcId": "7484026"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Ariel [Diamond]",
+    "removedId": "catalog::pc-7488113",
+    "removedPcId": "7488113",
+    "removedUpc": "889698567831",
+    "into": "Ariel",
+    "intoId": "catalog::pc-7488112",
+    "intoPcId": "7488112"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Mad Hatter [GITD] /5000",
+    "removedId": "catalog::pc-11212049",
+    "removedPcId": "11212049",
+    "removedUpc": "889698768504",
+    "into": "Mad Hatter",
+    "intoId": "catalog::55736.html",
+    "intoPcId": "7488173"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Buzz Lightyear [XL-15]",
+    "removedId": "catalog::pc-7488352",
+    "removedPcId": "7488352",
+    "removedUpc": "889698639491",
+    "into": "The Disney/Pixar Collection (Buzz Lightyear, Remy, Wall-E, Carl)",
+    "intoId": "catalog::the-disney/pixar-collection-buzz-lightyear,-remy,-wall-e,-carl",
+    "intoPcId": "7488352"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Sisu [GITD]",
+    "removedId": "catalog::pc-7488105",
+    "removedPcId": "10045850",
+    "removedUpc": "889698508629",
+    "into": "Sisu",
+    "intoId": "catalog::pc-7488104",
+    "intoPcId": "7488104"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Alice Curtsying [Blacklight]",
+    "removedId": "catalog::pc-7488169",
+    "removedPcId": "7488169",
+    "removedUpc": "889698560443",
+    "into": "Alice Curtsying",
+    "intoId": "catalog::pc-7488168",
+    "intoPcId": "7488168"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Captain Hook [Blacklight]",
+    "removedId": "catalog::pc-7488199",
+    "removedPcId": "7488199",
+    "removedUpc": "889698603959",
+    "into": "Captain Hook",
+    "intoId": "catalog::pc-7488198",
+    "intoPcId": "7488198"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Maleficent",
+    "removedId": "catalog::pc-7488200",
+    "removedPcId": "7488201",
+    "removedUpc": "889698603966",
+    "into": "Maleficent [Diamond]",
+    "intoId": "catalog::pc-7488202",
+    "intoPcId": "7488202"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Madam Mim [Dragon]",
+    "removedId": "catalog::pc-7488222",
+    "removedPcId": "7488222",
+    "removedUpc": "889698491600",
+    "into": "Madam Mim [Chase]",
+    "intoId": "catalog::pc-7488223",
+    "intoPcId": "7488223"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Cheshire Cat",
+    "removedId": "catalog::pc-7488338",
+    "removedPcId": "7488340",
+    "removedUpc": "889698626606",
+    "into": "Cheshire Cat [Diamond]",
+    "intoId": "catalog::pc-10585909",
+    "intoPcId": "10585909"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Santa Jack [GITD] (Special Edition)",
+    "removedId": "catalog::pc-11941742",
+    "removedPcId": "11941743",
+    "removedUpc": "889698739436",
+    "into": "Santa Jack",
+    "intoId": "catalog::pc-11941739",
+    "intoPcId": "11941739"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Belle [Gold] #221",
+    "removedPcId": "7473821",
+    "removedUpc": "889698565714",
+    "into": "Belle (Dancing)",
+    "intoId": "catalog::belle-dancing",
+    "intoPcId": "7473820"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Gus Gus in Slipper [Glitter] #139",
+    "removedPcId": "7473598",
+    "removedUpc": "849803055806",
+    "into": "Gus Gus",
+    "intoId": "catalog::gus-gus",
+    "intoPcId": "7473598"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Star Butterfly #501",
+    "removedPcId": "7483758",
+    "removedUpc": "889698357692",
+    "into": "Star Butterfly",
+    "intoId": "catalog::star-butterfly",
+    "intoPcId": "7483758"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Remy [Chase] #270",
+    "removedPcId": "7473990",
+    "removedUpc": "889698124119",
+    "into": "Remy (Flocked)",
+    "intoId": "catalog::remy-flocked",
+    "intoPcId": "7473991"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Organization 13 Mickey [Chase] #334",
+    "removedPcId": "7474076",
+    "removedUpc": "889698253529",
+    "into": "Mickey (Organization 13) (Unhooded) [Summer Convention]",
+    "intoId": "catalog::mickey-organization-13-(unhooded)-[summer-convention]",
+    "intoPcId": "7474076"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Organization 13 Mickey [Funko Convention] #334",
+    "removedPcId": "7474079",
+    "removedUpc": "889698217637",
+    "into": "Mickey (Organization 13) (Unhooded) [Summer Convention]",
+    "intoId": "catalog::mickey-organization-13-(unhooded)-[summer-convention]",
+    "intoPcId": "7474076"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington [Blacklight] #808",
+    "removedPcId": "7484029",
+    "removedUpc": "889698663175",
+    "into": "Jack Skellington (Prototype)",
+    "intoId": "catalog::jack-skellington-prototype",
+    "intoPcId": "7484028"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Cheshire Cat [SDCC] #35",
+    "removedPcId": "7473395",
+    "removedUpc": "830395025483",
+    "into": "Cheshire Cat (Faded)",
+    "intoId": "catalog::cheshire-cat-faded",
+    "intoPcId": "7473393"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Shadow Heartless [Chase] #335",
+    "removedPcId": "7474080",
+    "removedUpc": "",
+    "into": "Shadow Heartless (Glow in the Dark)",
+    "intoId": "catalog::shadow-heartless-glow-in-the-dark",
+    "intoPcId": "7474081"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington #15",
+    "removedPcId": "7473271",
+    "removedUpc": "889698320139",
+    "into": "Jack Skellington (Diamond Collection)",
+    "intoId": "catalog::jack-skellington-diamond-collection",
+    "intoPcId": "7473271"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Oogie Boogie [GITD] #39",
+    "removedPcId": "7473400",
+    "removedUpc": "",
+    "into": "Oogie Boogie (Glow in the Dark)",
+    "intoId": "catalog::oogie-boogie-glow-in-the-dark",
+    "intoPcId": "7473399"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mr. Incredible [SDCC] #17",
+    "removedPcId": "7473280",
+    "removedUpc": "",
+    "into": "Mr. Incredible (Blue Suit)",
+    "intoId": "catalog::mr.-incredible-blue-suit",
+    "intoPcId": "7473279"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Stitch #12",
+    "removedPcId": "7473228",
+    "removedUpc": "830395023533",
+    "into": "Stitch (Flocked)",
+    "intoId": "catalog::stitch-flocked",
+    "intoPcId": "7473229"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Blank] #1",
+    "removedPcId": "7473198",
+    "removedUpc": "",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Blue Colorway 9 Inch] #1",
+    "removedPcId": "7473207",
+    "removedUpc": "",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Metallic] #1",
+    "removedPcId": "7473197",
+    "removedUpc": "830395023427",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Red Disney Store Logo] #1",
+    "removedPcId": "7830097",
+    "removedUpc": "830395023427",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Buzz Lightyear #2",
+    "removedPcId": "7473210",
+    "removedUpc": "830395025131",
+    "into": "Buzz Lightyear (Metallic)",
+    "intoId": "catalog::buzz-lightyear-metallic",
+    "intoPcId": "7473211"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Buzz Lightyear [Red Logo] #2",
+    "removedPcId": "7960523",
+    "removedUpc": "830395025131",
+    "into": "Buzz Lightyear (Metallic)",
+    "intoId": "catalog::buzz-lightyear-metallic",
+    "intoPcId": "7473211"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Woody [Red Logo] #3",
+    "removedPcId": "7879980",
+    "removedUpc": "4580279603448",
+    "into": "Woody (Giants)",
+    "intoId": "catalog::woody-giants",
+    "intoPcId": "7473213"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Sulley #4",
+    "removedPcId": "7473215",
+    "removedUpc": "830395023458",
+    "into": "Sulley",
+    "intoId": "catalog::sulley",
+    "intoPcId": "7473215"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Sulley [Red Logo] #4",
+    "removedPcId": "10052211",
+    "removedUpc": "830395023458",
+    "into": "Sulley",
+    "intoId": "catalog::sulley",
+    "intoPcId": "7473215"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mike Wazowski [Red Logo] #5",
+    "removedPcId": "8877702",
+    "removedUpc": "830395023465",
+    "into": "Mike Wazowski (Glow in the Dark)",
+    "intoId": "catalog::mike-wazowski-glow-in-the-dark",
+    "intoPcId": "7473217"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Maleficent [Newest Logo] #9",
+    "removedPcId": "10807253",
+    "removedUpc": "830395023502",
+    "into": "Maleficent",
+    "intoId": "catalog::maleficent",
+    "intoPcId": "7473222"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Maleficent [Red Logo] #9",
+    "removedPcId": "10807247",
+    "removedUpc": "830395023502",
+    "into": "Maleficent",
+    "intoId": "catalog::maleficent",
+    "intoPcId": "7473222"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Stitch [Red Logo] #12",
+    "removedPcId": "8035305",
+    "removedUpc": "830395023533",
+    "into": "Stitch (Flocked)",
+    "intoId": "catalog::stitch-flocked",
+    "intoPcId": "7473229"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington [Diamond] #15",
+    "removedPcId": "7473272",
+    "removedUpc": "889698291286",
+    "into": "Jack Skellington (Diamond Collection)",
+    "intoId": "catalog::jack-skellington-diamond-collection",
+    "intoPcId": "7473271"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington [Hot Topic] #15",
+    "removedPcId": "7473274",
+    "removedUpc": "",
+    "into": "Jack Skellington (Diamond Collection)",
+    "intoId": "catalog::jack-skellington-diamond-collection",
+    "intoPcId": "7473271"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Minnie Mouse [Pride] #23",
+    "removedPcId": "7473289",
+    "removedUpc": "889698561297",
+    "into": "Minnie Mouse (Shanghai)",
+    "intoId": "catalog::minnie-mouse-shanghai",
+    "intoPcId": "7470244"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Minnie Mouse [Red Dress] #23",
+    "removedPcId": "7473288",
+    "removedUpc": "",
+    "into": "Minnie Mouse (Shanghai)",
+    "intoId": "catalog::minnie-mouse-shanghai",
+    "intoPcId": "7470244"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Steamboat Willie [D23] #24",
+    "removedPcId": "7473292",
+    "removedUpc": "",
+    "into": "Steamboat Willie",
+    "intoId": "catalog::steamboat-willie",
+    "intoPcId": "7473290"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Winnie The Pooh #32",
+    "removedPcId": "7473388",
+    "removedUpc": "830395025551",
+    "into": "Winnie the Pooh (Flocked)",
+    "intoId": "catalog::winnie-the-pooh-flocked",
+    "intoPcId": "7473388"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Winnie The Pooh [Flocked] #32",
+    "removedPcId": "7473389",
+    "removedUpc": "",
+    "into": "Winnie the Pooh (Flocked)",
+    "intoId": "catalog::winnie-the-pooh-flocked",
+    "intoPcId": "7473388"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Cheshire Cat [Fading] #35",
+    "removedPcId": "7473394",
+    "removedUpc": "",
+    "into": "Cheshire Cat (Faded)",
+    "intoId": "catalog::cheshire-cat-faded",
+    "intoPcId": "7473393"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Dumbo #50",
+    "removedPcId": "7473415",
+    "removedUpc": "830395032009",
+    "into": "Dumbo (Clown)",
+    "intoId": "catalog::dumbo-clown",
+    "intoPcId": "7473418"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Genie [Metallic] #54",
+    "removedPcId": "7473423",
+    "removedUpc": "830395031989",
+    "into": "Genie",
+    "intoId": "catalog::genie",
+    "intoPcId": "7473422"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Rocketeer [Gemini Collectibles] #58",
+    "removedPcId": "7473429",
+    "removedUpc": "",
+    "into": "Rocketeer (Black & White)",
+    "intoId": "catalog::rocketeer-black-&amp;-white",
+    "intoPcId": "7473428"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington [GITD] #69",
+    "removedPcId": "7473461",
+    "removedUpc": "",
+    "into": "Jack Skellington (Day of the Dead)",
+    "intoId": "catalog::jack-skellington-day-of-the-dead",
+    "intoPcId": "7473460"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Sally [GITD] #70",
+    "removedPcId": "7473463",
+    "removedUpc": "",
+    "into": "Sally (Day of the Dead)",
+    "intoId": "catalog::sally-day-of-the-dead",
+    "intoPcId": "7473462"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Zero #71",
+    "removedPcId": "7473464",
+    "removedUpc": "889698668835",
+    "into": "Zero (Glitter)",
+    "intoId": "catalog::zero-glitter",
+    "intoPcId": "8188574"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Zero [Blacklight] #71",
+    "removedPcId": "7473466",
+    "removedUpc": "889698639644",
+    "into": "Zero (Glitter)",
+    "intoId": "catalog::zero-glitter",
+    "intoPcId": "8188574"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Zero [Chase] #71",
+    "removedPcId": "7473465",
+    "removedUpc": "830395034065",
+    "into": "Zero (Glitter)",
+    "intoId": "catalog::zero-glitter",
+    "intoPcId": "8188574"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Maleficent [GITD] #77",
+    "removedPcId": "7473476",
+    "removedUpc": "",
+    "into": "Maleficent (Movie) (Glow in the Dark)",
+    "intoId": "catalog::maleficent-movie-(glow-in-the-dark)",
+    "intoPcId": "7473475"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Olaf [GITD] #79",
+    "removedPcId": "7473479",
+    "removedUpc": "849803043940",
+    "into": "Olaf (Flocked)",
+    "intoId": "catalog::olaf-flocked",
+    "intoPcId": "7473480"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Olaf [Glitter] #79",
+    "removedPcId": "7473481",
+    "removedUpc": "849803047719",
+    "into": "Olaf (Flocked)",
+    "intoId": "catalog::olaf-flocked",
+    "intoPcId": "7473480"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Anna [Funko Convention] #81",
+    "removedPcId": "7473484",
+    "removedUpc": "849803043933",
+    "into": "Anna (Frozen)",
+    "intoId": "catalog::anna-frozen",
+    "intoPcId": "7473483"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Anna [SDCC] #81",
+    "removedPcId": "10945401",
+    "removedUpc": "849803043933",
+    "into": "Anna (Frozen)",
+    "intoId": "catalog::anna-frozen",
+    "intoPcId": "7473483"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Simba #85",
+    "removedPcId": "7473521",
+    "removedUpc": "849803042646",
+    "into": "Simba (Flocked)",
+    "intoId": "catalog::simba-flocked",
+    "intoPcId": "7473520"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Lumiere [GITD] #93",
+    "removedPcId": "7473530",
+    "removedUpc": "849803044442",
+    "into": "Lumiere",
+    "intoId": "catalog::lumiere",
+    "intoPcId": "7473529"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Bambi #94",
+    "removedPcId": "7473531",
+    "removedUpc": "849803093778",
+    "into": "Bambi (Flocked)",
+    "intoId": "catalog::bambi-flocked",
+    "intoPcId": "7473532"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Prince John [Metallic] #98",
+    "removedPcId": "7473537",
+    "removedUpc": "",
+    "into": "Prince John",
+    "intoId": "catalog::prince-john",
+    "intoPcId": "7473536"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Wasabi No-Ginger #110",
+    "removedPcId": "7473558",
+    "removedUpc": "849803046590",
+    "into": "Wasabi No-Ginger",
+    "intoId": "catalog::wasabi-no-ginger",
+    "intoPcId": "7473558"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Baymax [Glow In The Dark] #111",
+    "removedPcId": "8835044",
+    "removedUpc": "",
+    "into": "Baymax (Diamond Collection)",
+    "intoId": "catalog::baymax-diamond-collection",
+    "intoPcId": "7473559"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Baymax [Hot Topic] #111",
+    "removedPcId": "7473560",
+    "removedUpc": "889698291279",
+    "into": "Baymax (Diamond Collection)",
+    "intoId": "catalog::baymax-diamond-collection",
+    "intoPcId": "7473559"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Baymax [SDCC] #111",
+    "removedPcId": "7473561",
+    "removedUpc": "",
+    "into": "Baymax (Diamond Collection)",
+    "intoId": "catalog::baymax-diamond-collection",
+    "intoPcId": "7473559"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Baymax [Summer Convention] #111",
+    "removedPcId": "10235393",
+    "removedUpc": "849803056162",
+    "into": "Baymax (Diamond Collection)",
+    "intoId": "catalog::baymax-diamond-collection",
+    "intoPcId": "7473559"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Coronation Elsa #121",
+    "removedPcId": "7473572",
+    "removedUpc": "849803048853",
+    "into": "Coronation Elsa With Orb & Scepter",
+    "intoId": "catalog::coronation-elsa-with-orb-&amp;-scepter",
+    "intoPcId": "7473572"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mater #129",
+    "removedPcId": "7473582",
+    "removedUpc": "849803042387",
+    "into": "Mater (Dinoco)",
+    "intoId": "catalog::mater-dinoco",
+    "intoPcId": "7473583"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Ramone [Target] #131",
+    "removedPcId": "7473585",
+    "removedUpc": "849803062682",
+    "into": "Ramone (Green Paint)",
+    "intoId": "catalog::ramone-green-paint",
+    "intoPcId": "7473586"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Joy #132",
+    "removedPcId": "7473587",
+    "removedUpc": "849803048730",
+    "into": "Joy (Glitter Hair) [SDCC]",
+    "intoId": "catalog::joy-glitter-hair-[sdcc]",
+    "intoPcId": "7473588"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Sadness #133",
+    "removedPcId": "7473589",
+    "removedUpc": "849803048778",
+    "into": "Sadness (Glitter Hair) [SDCC]",
+    "intoId": "catalog::sadness-glitter-hair-[sdcc]",
+    "intoPcId": "7473589"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Sadness [Glitter] #133",
+    "removedPcId": "7473590",
+    "removedUpc": "849803056346",
+    "into": "Sadness (Glitter Hair) [SDCC]",
+    "intoId": "catalog::sadness-glitter-hair-[sdcc]",
+    "intoPcId": "7473589"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Anger [Entertainment Earth] #136",
+    "removedPcId": "7473595",
+    "removedUpc": "889698103138",
+    "into": "Anger (Flames) [Summer Convention]",
+    "intoId": "catalog::anger-flames-[summer-convention]",
+    "intoPcId": "7473594"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Bing Bong [Hot Topic] #137",
+    "removedPcId": "7473597",
+    "removedUpc": "849803052577",
+    "into": "Bing Bong (Clear)",
+    "intoId": "catalog::bing-bong-clear",
+    "intoPcId": "7473596"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Baymax Unmasked #143",
+    "removedPcId": "7473604",
+    "removedUpc": "849803056155",
+    "into": "Baymax (Unmasked) [SDCC]",
+    "intoId": "catalog::baymax-unmasked-[sdcc]",
+    "intoPcId": "7473604"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Olaf #144",
+    "removedPcId": "7473605",
+    "removedUpc": "849803056247",
+    "into": "Olaf (Barbershop Quartet) (w/ Bird) [SDCC]",
+    "intoId": "catalog::olaf-barbershop-quartet-(w/-bird)-[sdcc]",
+    "intoPcId": "7473605"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Rapunzel And Pascal [Summer Convention] #147",
+    "removedPcId": "9568374",
+    "removedUpc": "849803051358",
+    "into": "Rapunzel & Pascal",
+    "intoId": "catalog::rapunzel-&amp;-pascal",
+    "intoPcId": "9568374"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Rapunzel and Pascal [Funko Convention] #147",
+    "removedPcId": "7473608",
+    "removedUpc": "849803051358",
+    "into": "Rapunzel & Pascal",
+    "intoId": "catalog::rapunzel-&amp;-pascal",
+    "intoPcId": "9568374"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Princess Tiana and Naveen [Glitter] #149",
+    "removedPcId": "7473611",
+    "removedUpc": "889698546737",
+    "into": "Princess Tiana & Naveen",
+    "intoId": "catalog::princess-tiana-&amp;-naveen",
+    "intoPcId": "7473611"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Pumpkin King [GITD] #153",
+    "removedPcId": "7998891",
+    "removedUpc": "849803067243",
+    "into": "Pumpkin King (Glow In The Dark)",
+    "intoId": "catalog::pumpkin-king-glow-in-the-dark",
+    "intoPcId": "7473615"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Stitch #159",
+    "removedPcId": "7473621",
+    "removedUpc": "849803065553",
+    "into": "Stitch (Seated) (Flocked)",
+    "intoId": "catalog::stitch-seated-(flocked)",
+    "intoPcId": "7473620"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Stitch [Glitter] #159",
+    "removedPcId": "7473619",
+    "removedUpc": "889698260381",
+    "into": "Stitch (Seated) (Flocked)",
+    "intoId": "catalog::stitch-seated-(flocked)",
+    "intoPcId": "7473620"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Phineas [GITD] #162",
+    "removedPcId": "7473746",
+    "removedUpc": "849803054953",
+    "into": "Phineas (Haunted Mansion) (White Glow Glitter)",
+    "intoId": "catalog::phineas-haunted-mansion-(white-glow-glitter)",
+    "intoPcId": "7473747"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Gus [GITD] #164",
+    "removedPcId": "7473751",
+    "removedUpc": "",
+    "into": "Gus (Haunted Mansion) (White Glow Glitter)",
+    "intoId": "catalog::gus-haunted-mansion-(white-glow-glitter)",
+    "intoPcId": "7473750"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Cheshire Cat [GITD] #178",
+    "removedPcId": "7473769",
+    "removedUpc": "889698102674",
+    "into": "Cheshire Cat (Movie) (Glow in the Dark)",
+    "intoId": "catalog::cheshire-cat-movie-(glow-in-the-dark)",
+    "intoPcId": "7473767"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Cheshire Cat [SE GITD] #178",
+    "removedPcId": "7951866",
+    "removedUpc": "889698102674",
+    "into": "Cheshire Cat (Movie) (Glow in the Dark)",
+    "intoId": "catalog::cheshire-cat-movie-(glow-in-the-dark)",
+    "intoPcId": "7473767"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Iracebeth #185",
+    "removedPcId": "7473776",
+    "removedUpc": "889698106221",
+    "into": "Iracebeth (Patina)",
+    "intoId": "catalog::iracebeth-patina",
+    "intoPcId": "7473777"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Cursed Barbossa #208",
+    "removedPcId": "7473804",
+    "removedUpc": "849803071073",
+    "into": "Cursed Barbossa (with Monkey) [SDCC]",
+    "intoId": "catalog::cursed-barbossa-with-monkey-[sdcc]",
+    "intoPcId": "9972157"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Sally [GITD] #209",
+    "removedPcId": "7473800",
+    "removedUpc": "889698209274",
+    "into": "Sally",
+    "intoId": "catalog::pc-7473801",
+    "intoPcId": "7473801"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Behemoth [GITD] #211",
+    "removedPcId": "7473806",
+    "removedUpc": "889698209281",
+    "into": "Behemoth (Glow in the Dark)",
+    "intoId": "catalog::behemoth-glow-in-the-dark",
+    "intoPcId": "7473805"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Harlequin Demon [GITD] #212",
+    "removedPcId": "7473808",
+    "removedUpc": "889698328432",
+    "into": "Harlequin Demon (Diamond Collection) (Special Edition)",
+    "intoId": "catalog::harlequin-demon-diamond-collection",
+    "intoPcId": "7904069"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Harlequin Demon [Hot Topic Diamond] #212",
+    "removedPcId": "7904068",
+    "removedUpc": "889698415989",
+    "into": "Harlequin Demon (Diamond Collection) (Special Edition)",
+    "intoId": "catalog::harlequin-demon-diamond-collection",
+    "intoPcId": "7904069"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Young Moana #215",
+    "removedPcId": "7473811",
+    "removedUpc": "889698114431",
+    "into": "Young Moana Prototype",
+    "intoId": "catalog::young-moana-prototype",
+    "intoPcId": "7473811"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Cinderella [Gold] #222",
+    "removedPcId": "7473825",
+    "removedUpc": "889698565738",
+    "into": "Cinderella (Dancing) (Glitter)",
+    "intoId": "catalog::cinderella-dancing-(glitter)",
+    "intoPcId": "7473822"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Cinderella [Metallic] #222",
+    "removedPcId": "7473824",
+    "removedUpc": "889698123372",
+    "into": "Cinderella (Dancing) (Glitter)",
+    "intoId": "catalog::cinderella-dancing-(glitter)",
+    "intoPcId": "7473822"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Rapunzel [Glitter] #223",
+    "removedPcId": "7473826",
+    "removedUpc": "889698125703",
+    "into": "Rapunzel (Dancing) (Glitter)",
+    "intoId": "catalog::rapunzel-dancing-(glitter)",
+    "intoPcId": "7473828"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Rapunzel [Gold] #223",
+    "removedPcId": "7473827",
+    "removedUpc": "889698565691",
+    "into": "Rapunzel (Dancing) (Glitter)",
+    "intoId": "catalog::rapunzel-dancing-(glitter)",
+    "intoPcId": "7473828"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Tiana [Gold] #224",
+    "removedPcId": "7473830",
+    "removedUpc": "",
+    "into": "Tiana (Dancing)",
+    "intoId": "catalog::tiana-dancing",
+    "intoPcId": "7473829"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Dapper Jack Skellington [Hot Topic] #226",
+    "removedPcId": "7473833",
+    "removedUpc": "889698118682",
+    "into": "Dapper Jack Skellington (Prototype)",
+    "intoId": "catalog::dapper-jack-skellington-prototype",
+    "intoPcId": "7473832"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Oogie Boogie with Bugs [Diamond] #230",
+    "removedPcId": "7473896",
+    "removedUpc": "889698385725",
+    "into": "Oogie Boogie with Bugs",
+    "intoId": "catalog::oogie-boogie-with-bugs",
+    "intoPcId": "7473895"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Maleficent [Chase] #232",
+    "removedPcId": "7473899",
+    "removedUpc": "889698117883",
+    "into": "Maleficent (Flames) (Special Edition)",
+    "intoId": "catalog::maleficent-flames",
+    "intoPcId": "7473900"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Maleficent [Hot Topic Chase] #232",
+    "removedPcId": "7912877",
+    "removedUpc": "889698117883",
+    "into": "Maleficent (Flames) (Special Edition)",
+    "intoId": "catalog::maleficent-flames",
+    "intoPcId": "7473900"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Maleficent [Hot Topic] #232",
+    "removedPcId": "7912878",
+    "removedUpc": "889698117883",
+    "into": "Maleficent (Flames) (Special Edition)",
+    "intoId": "catalog::maleficent-flames",
+    "intoPcId": "7473900"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Flounder #237",
+    "removedPcId": "7473904",
+    "removedUpc": "889698290647",
+    "into": "Flounder (Diamond Collection)",
+    "intoId": "catalog::flounder-diamond-collection",
+    "intoPcId": "7473905"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Beast #243",
+    "removedPcId": "7473911",
+    "removedUpc": "889698123181",
+    "into": "Beast (Live Action)",
+    "intoId": "catalog::beast-live-action",
+    "intoPcId": "7473911"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Beast [Flocked] #243",
+    "removedPcId": "7473913",
+    "removedUpc": "889698129053",
+    "into": "Beast (Live Action)",
+    "intoId": "catalog::beast-live-action",
+    "intoPcId": "7473911"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Belle Village #249",
+    "removedPcId": "7473919",
+    "removedUpc": "889698124744",
+    "into": "Belle (Village)",
+    "intoId": "catalog::belle-village",
+    "intoPcId": "7473919"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Eeyore #254",
+    "removedPcId": "7473926",
+    "removedUpc": "889698112628",
+    "into": "Eeyore (Diamond Collection) (Blue)",
+    "intoId": "catalog::eeyore-diamond-collection-(blue)",
+    "intoPcId": "7473926"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Eeyore [Blue] #254",
+    "removedPcId": "7473929",
+    "removedUpc": "889698128612",
+    "into": "Eeyore (Diamond Collection) (Blue)",
+    "intoId": "catalog::eeyore-diamond-collection-(blue)",
+    "intoPcId": "7473926"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Eeyore [Chase Diamond] #254",
+    "removedPcId": "7473931",
+    "removedUpc": "889698396400",
+    "into": "Eeyore (Diamond Collection) (Blue)",
+    "intoId": "catalog::eeyore-diamond-collection-(blue)",
+    "intoPcId": "7473926"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Heffalump [Barnes Noble] #256",
+    "removedPcId": "7473935",
+    "removedUpc": "889698130219",
+    "into": "Heffalump (Stripes)",
+    "intoId": "catalog::heffalump-stripes",
+    "intoPcId": "7473933"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Heffalump [Chase] #256",
+    "removedPcId": "7473934",
+    "removedUpc": "889698112635",
+    "into": "Heffalump (Stripes)",
+    "intoId": "catalog::heffalump-stripes",
+    "intoPcId": "7473933"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Jolly Roger [GITD] #258 /1000",
+    "removedPcId": "7473938",
+    "removedUpc": "",
+    "into": "Jolly Roger [Disney Parks]",
+    "intoId": "catalog::jolly-roger-#258-[disney-parks]",
+    "intoPcId": "7473937"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Captain Salazar [Chase] #274",
+    "removedPcId": "7473996",
+    "removedUpc": "889698128049",
+    "into": "Captain Salazar (Ghost)",
+    "intoId": "catalog::captain-salazar-ghost",
+    "intoPcId": "7474023"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Lightning McQueen [Meijer] #282",
+    "removedPcId": "7474004",
+    "removedUpc": "889698141796",
+    "into": "Lightning McQueen (Gray)",
+    "intoId": "catalog::lightning-mcqueen-gray",
+    "intoPcId": "7474002"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Lightning McQueen [Target] #282",
+    "removedPcId": "7474003",
+    "removedUpc": "889698130448",
+    "into": "Lightning McQueen (Gray)",
+    "intoId": "catalog::lightning-mcqueen-gray",
+    "intoPcId": "7474002"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Lightning McQueen [Toys R Us] #283",
+    "removedPcId": "7474005",
+    "removedUpc": "889698142342",
+    "into": "Lightning McQueen (Fabulous)",
+    "intoId": "catalog::lightning-mcqueen-fabulous",
+    "intoPcId": "12395093"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Tigger #288",
+    "removedPcId": "7474010",
+    "removedUpc": "889698145190",
+    "into": "Tigger (Bouncing) (Flocked) [SDCC]",
+    "intoId": "catalog::tigger-bouncing-(flocked)-[sdcc]",
+    "intoPcId": "8450905"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Abominable Snowman [Diamond] #289",
+    "removedPcId": "7474012",
+    "removedUpc": "889698342087",
+    "into": "Abominable Snowman (Diamond Collection)",
+    "intoId": "catalog::abominable-snowman-diamond-collection",
+    "intoPcId": "7474012"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Marie [Diamond] #294",
+    "removedPcId": "7474021",
+    "removedUpc": "889698550826",
+    "into": "Marie (Flocked)",
+    "intoId": "catalog::marie-flocked",
+    "intoPcId": "7474020"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Launchpad McQuack #297",
+    "removedPcId": "7474026",
+    "removedUpc": "889698132619",
+    "into": "Launchpad McQuack Mystery Mini Prototype",
+    "intoId": "catalog::launchpad-mcquack-mystery-mini-prototype",
+    "intoPcId": "7474026"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Miguel #303",
+    "removedPcId": "7474035",
+    "removedUpc": "889698147675",
+    "into": "Miguel (Diamond Collection) (Special Edition)",
+    "intoId": "catalog::miguel-diamond-collection",
+    "intoPcId": "7474037"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Miguel [Chase] #303",
+    "removedPcId": "7474036",
+    "removedUpc": "889698147675",
+    "into": "Miguel (Diamond Collection) (Special Edition)",
+    "intoId": "catalog::miguel-diamond-collection",
+    "intoPcId": "7474037"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Miguel [GITD] #303",
+    "removedPcId": "7474038",
+    "removedUpc": "889698224482",
+    "into": "Miguel (Diamond Collection) (Special Edition)",
+    "intoId": "catalog::miguel-diamond-collection",
+    "intoPcId": "7474037"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Miguel [Hot Topic Diamond] #303",
+    "removedPcId": "7903998",
+    "removedUpc": "889698408738",
+    "into": "Miguel (Diamond Collection) (Special Edition)",
+    "intoId": "catalog::miguel-diamond-collection",
+    "intoPcId": "7474037"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Scrooge McDuck [10 Inch] #312",
+    "removedPcId": "9906693",
+    "removedUpc": "889698278089",
+    "into": "Scrooge McDuck (Swimming In Gold) (10 Inch)",
+    "intoId": "catalog::scrooge-mcduck-swimming-in-gold-(10-inch)",
+    "intoPcId": "9906693"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Dapper Sally [Diamond] #313",
+    "removedPcId": "7474049",
+    "removedUpc": "889698397858",
+    "into": "Dapper Sally",
+    "intoId": "catalog::dapper-sally",
+    "intoPcId": "7474048"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mulan [Gold] #323",
+    "removedPcId": "7474061",
+    "removedUpc": "889698565721",
+    "into": "Mulan (Dancing) (Diamond Collection)",
+    "intoId": "catalog::mulan-dancing-(diamond-collection)",
+    "intoPcId": "7474060"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Merida [Gold] #324",
+    "removedPcId": "7474063",
+    "removedUpc": "889698565943",
+    "into": "Merida (Dancing)",
+    "intoId": "catalog::merida-dancing",
+    "intoPcId": "7474062"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Aurora [Chase] #325",
+    "removedPcId": "7474065",
+    "removedUpc": "889698212113",
+    "into": "Aurora (Dancing) (Glitter)",
+    "intoId": "catalog::aurora-dancing-(glitter)",
+    "intoPcId": "7474066"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Aurora [Funko Shop] #325",
+    "removedPcId": "7474067",
+    "removedUpc": "889698565639",
+    "into": "Aurora (Dancing) (Glitter)",
+    "intoId": "catalog::aurora-dancing-(glitter)",
+    "intoPcId": "7474066"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jasmine [Gold] #326",
+    "removedPcId": "7474069",
+    "removedUpc": "889698565653",
+    "into": "Jasmine (Live Action)",
+    "intoId": "catalog::jasmine-live-action",
+    "intoPcId": "7474068"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Halloween Town Sora #328",
+    "removedPcId": "7474073",
+    "removedUpc": "889698149587",
+    "into": "Sora (Halloween Town)",
+    "intoId": "catalog::sora-halloween-town",
+    "intoPcId": "7474073"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Sora [Best Buy] #330",
+    "removedPcId": "10806149",
+    "removedUpc": "889698224499",
+    "into": "Sora (Final Form)",
+    "intoId": "catalog::sora-final-form",
+    "intoPcId": "7474085"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Organization 13 Mickey #334",
+    "removedPcId": "7474078",
+    "removedUpc": "889698253529",
+    "into": "Mickey (Organization 13) (Unhooded) [Summer Convention]",
+    "intoId": "catalog::mickey-organization-13-(unhooded)-[summer-convention]",
+    "intoPcId": "7474076"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Zero with Bone [Chase] #336",
+    "removedPcId": "7474082",
+    "removedUpc": "889698233521",
+    "into": "Zero With Bone (Glow In The Dark)",
+    "intoId": "catalog::zero-with-bone-glow-in-the-dark",
+    "intoPcId": "7474083"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Snow White #339",
+    "removedPcId": "7474090",
+    "removedUpc": "889698730297",
+    "into": "Snow White (Once Upon A Dream)",
+    "intoId": "catalog::snow-white-once-upon-a-dream",
+    "intoPcId": "8842957"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Snow White [Metallic] #339",
+    "removedPcId": "7474091",
+    "removedUpc": "",
+    "into": "Snow White (Once Upon A Dream)",
+    "intoId": "catalog::snow-white-once-upon-a-dream",
+    "intoPcId": "8842957"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Dopey [Chase] #340",
+    "removedPcId": "7474093",
+    "removedUpc": "889698217187",
+    "into": "Dopey (Kisses)",
+    "intoId": "catalog::dopey-kisses",
+    "intoPcId": "7474092"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Bambi [Flocked] #351",
+    "removedPcId": "12228378",
+    "removedUpc": "889698667449",
+    "into": "Bambi (Ice)",
+    "intoId": "catalog::bambi-ice",
+    "intoPcId": "7474105"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Abu #353",
+    "removedPcId": "7474107",
+    "removedUpc": "889698249232",
+    "into": "Abu (Flocked)",
+    "intoId": "catalog::abu-flocked",
+    "intoPcId": "7474108"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Rajah #355",
+    "removedPcId": "7474111",
+    "removedUpc": "889698230469",
+    "into": "Rajah (Flocked)",
+    "intoId": "catalog::rajah-flocked",
+    "intoPcId": "7474112"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Red Jafar as Genie [Chase] #356",
+    "removedPcId": "7474114",
+    "removedUpc": "889698244039",
+    "into": "Red Jafar (as Genie)",
+    "intoId": "catalog::red-jafar-as-genie",
+    "intoPcId": "7474114"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Violet [Chase] #365",
+    "removedPcId": "7474126",
+    "removedUpc": "889698292016",
+    "into": "Violet (Invisible)",
+    "intoId": "catalog::violet-invisible",
+    "intoPcId": "7474125"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack-Jack [Giants] #367",
+    "removedPcId": "12415978",
+    "removedUpc": "889698329866",
+    "into": "Jack-Jack (Giants)",
+    "intoId": "catalog::jack-jack-giants",
+    "intoPcId": "7474129"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Maui Shark Head #376",
+    "removedPcId": "7483606",
+    "removedUpc": "889698284448",
+    "into": "Maui (Shark Head) [ECCC]",
+    "intoId": "catalog::maui-shark-head-[eccc]",
+    "intoPcId": "7483606"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Hercules [Chase] #378",
+    "removedPcId": "7483610",
+    "removedUpc": "889698293228",
+    "into": "Hercules",
+    "intoId": "catalog::hercules",
+    "intoPcId": "7483609"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [Diamond Chase Red] #381",
+    "removedPcId": "7912871",
+    "removedUpc": "889698503389",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [GITD Chase Red] #381",
+    "removedPcId": "7483615",
+    "removedUpc": "889698503389",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [Hot Topic Diamond Chase Red] #381",
+    "removedPcId": "7912872",
+    "removedUpc": "889698503389",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [Hot Topic GITD Chase Red] #381",
+    "removedPcId": "7912868",
+    "removedUpc": "889698293433",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [Special Edition GITD Blue] #381",
+    "removedPcId": "7912866",
+    "removedUpc": "889698293433",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Maleficent [Diamond] #384",
+    "removedPcId": "7483619",
+    "removedUpc": "889698291323",
+    "into": "Maleficent (Diamond Collection)",
+    "intoId": "catalog::maleficent-diamond-collection",
+    "intoPcId": "7483619"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Sulley #385",
+    "removedPcId": "7483620",
+    "removedUpc": "889698754675",
+    "into": "Sulley (Waving) (Flocked)",
+    "intoId": "catalog::sulley-waving-(flocked)",
+    "intoPcId": "7483620"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Sulley [Flocked] #385",
+    "removedPcId": "7483621",
+    "removedUpc": "889698276979",
+    "into": "Sulley (Waving) (Flocked)",
+    "intoId": "catalog::sulley-waving-(flocked)",
+    "intoPcId": "7483620"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Boo #386",
+    "removedPcId": "7483623",
+    "removedUpc": "690127397987",
+    "into": "Boo (w/ Little Mikey)",
+    "intoId": "catalog::boo-w/-little-mikey",
+    "intoPcId": "7483623"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Goliath #389",
+    "removedPcId": "7483626",
+    "removedUpc": "889698309479",
+    "into": "Goliath (Stone)",
+    "intoId": "catalog::goliath-stone",
+    "intoPcId": "7483627"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Edna Jack-Jack #404",
+    "removedPcId": "7483642",
+    "removedUpc": "889698299541",
+    "into": "Edna Jack-Jack [SDCC]",
+    "intoId": "catalog::edna-jack-jack-[sdcc]",
+    "intoPcId": "10257254"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Te Fiti [Flocked] #420",
+    "removedPcId": "7483660",
+    "removedUpc": "889698624824",
+    "into": "Te Fiti",
+    "intoId": "catalog::te-fiti",
+    "intoPcId": "7483659"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Tamatoa [GITD] #421",
+    "removedPcId": "7483662",
+    "removedUpc": "889698304467",
+    "into": "Tamatoa (Neon) [SDCC]",
+    "intoId": "catalog::tamatoa-neon-[sdcc]",
+    "intoPcId": "7483661"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Zero In Doghouse [GITD] #436",
+    "removedPcId": "11453184",
+    "removedUpc": "889698318198",
+    "into": "Zero In Doghouse (Glow In The Dark)",
+    "intoId": "catalog::zero-in-doghouse-glow-in-the-dark",
+    "intoPcId": "11453185"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Louie [Chase] #444",
+    "removedPcId": "7483689",
+    "removedUpc": "889698320856",
+    "into": "Louie (TaleSpin) (Magenta Shirt)",
+    "intoId": "catalog::louie-talespin-(magenta-shirt)",
+    "intoPcId": "7483688"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Sora Christmas Town [Hot Topic] #449",
+    "removedPcId": "7998894",
+    "removedUpc": "889698323970",
+    "into": "Sora (Christmas Town) (Special Edition)",
+    "intoId": "catalog::sora-christmas-town",
+    "intoPcId": "7998893"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Black White] #457",
+    "removedPcId": "7483703",
+    "removedUpc": "889698316361",
+    "into": "Mickey Mouse (Blue & Green) (10-Inch) [Funko-Shop]",
+    "intoId": "catalog::mickey-mouse-blue-&amp;-green-(10-inch)-[funko-shop]",
+    "intoPcId": "7483703"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Max [Chase] #462",
+    "removedPcId": "7483710",
+    "removedUpc": "",
+    "into": "Max (Goof Troop) (with Skateboard)",
+    "intoId": "catalog::max-goof-troop-(with-skateboard)",
+    "intoPcId": "7483709"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Angela [Chase] #464",
+    "removedPcId": "7483712",
+    "removedUpc": "889698348249",
+    "into": "Angela (Gargoyles)",
+    "intoId": "catalog::angela-gargoyles",
+    "intoPcId": "7483713"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Wildcat [Chase] #466",
+    "removedPcId": "7483716",
+    "removedUpc": "889698348225",
+    "into": "Wildcat (Oil Stains)",
+    "intoId": "catalog::wildcat-oil-stains",
+    "intoPcId": "7483717"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Lock, Shock, and Barrel In Tub #474",
+    "removedPcId": "7483725",
+    "removedUpc": "889698329859",
+    "into": "Lock, Shock & Barrel",
+    "intoId": "catalog::lock,-shock-&amp;-barrel",
+    "intoPcId": "7483725"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mufasa [Starry Skies] #495",
+    "removedPcId": "7483752",
+    "removedUpc": "",
+    "into": "Mufasa (Spirit)",
+    "intoId": "catalog::mufasa-spirit",
+    "intoPcId": "7483750"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Simba [Flocked] #496",
+    "removedPcId": "7847775",
+    "removedUpc": "889698741309",
+    "into": "Simba (Grub)",
+    "intoId": "catalog::simba-grub",
+    "intoPcId": "7483753"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Gamer Minnie [SE] #507",
+    "removedPcId": "8877679",
+    "removedUpc": "889698370042",
+    "into": "Gamer Minnie",
+    "intoId": "catalog::gamer-minnie",
+    "intoPcId": "7483764"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Bullseye #520",
+    "removedPcId": "7483779",
+    "removedUpc": "889698730419",
+    "into": "Bullseye (Flocked) [SDCC Debut]",
+    "intoId": "catalog::bullseye-flocked-[sdcc-debut]",
+    "intoPcId": "7483779"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Bullseye [Flocked] #520",
+    "removedPcId": "7483878",
+    "removedUpc": "889698370066",
+    "into": "Bullseye (Flocked) [SDCC Debut]",
+    "intoId": "catalog::bullseye-flocked-[sdcc-debut]",
+    "intoPcId": "7483779"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Buzz Lightyear [Diamond] #523",
+    "removedPcId": "7483784",
+    "removedUpc": "889698666831",
+    "into": "Buzz Lightyear (Toy Story 4)",
+    "intoId": "catalog::buzz-lightyear-toy-story-4",
+    "intoPcId": "7483783"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Alien [Diamond] #525",
+    "removedPcId": "7483789",
+    "removedUpc": "889698482752",
+    "into": "Alien (Diamond Glitter) (Translucent)",
+    "intoId": "catalog::alien-diamond-glitter-(translucent)",
+    "intoPcId": "7483789"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Genie [GITD] #539",
+    "removedPcId": "7483804",
+    "removedUpc": "889698371193",
+    "into": "Genie (Live Action)",
+    "intoId": "catalog::genie-live-action",
+    "intoPcId": "7483803"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Aladdin as Prince Ali #540",
+    "removedPcId": "7483805",
+    "removedUpc": "889698370233",
+    "into": "Aladdin Prince Ali",
+    "intoId": "catalog::aladdin-prince-ali",
+    "intoPcId": "7483805"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Scar with Flames [Chase] #544",
+    "removedPcId": "7483811",
+    "removedUpc": "",
+    "into": "Scar with Flames",
+    "intoId": "catalog::scar-with-flames",
+    "intoPcId": "7483810"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Timon [Flocked] #549",
+    "removedPcId": "7483819",
+    "removedUpc": "889698406987",
+    "into": "Timon (Hula)",
+    "intoId": "catalog::timon-hula",
+    "intoPcId": "7483818"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Eve [SE] #552",
+    "removedPcId": "7904040",
+    "removedUpc": "889698387538",
+    "into": "EVE (Earth Day)",
+    "intoId": "catalog::eve-earth-day",
+    "intoPcId": "7483823"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Ursula [Metallic] #568",
+    "removedPcId": "7483842",
+    "removedUpc": "889698427647",
+    "into": "Ursula (with Eels) (Diamond Collection)",
+    "intoId": "catalog::ursula-with-eels-(diamond-collection)",
+    "intoPcId": "7483841"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Artemis Fowl [Chase] #571",
+    "removedPcId": "7483846",
+    "removedUpc": "889698402101",
+    "into": "Artemis Fowl (Glasses)",
+    "intoId": "catalog::artemis-fowl-glasses",
+    "intoPcId": "7483845"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Madame Leota [GITD] #575",
+    "removedPcId": "7483851",
+    "removedUpc": "889698430029",
+    "into": "Madame Leota (Glitter)",
+    "intoId": "catalog::madame-leota-glitter",
+    "intoPcId": "7483850"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Opera Singer Phantom #576",
+    "removedPcId": "7483852",
+    "removedUpc": "889698421485",
+    "into": "Opera Singer Phantom",
+    "intoId": "catalog::opera-singer-phantom",
+    "intoPcId": "7483852"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Elsa [Gold] #581",
+    "removedPcId": "7483858",
+    "removedUpc": "889698565936",
+    "into": "Elsa (Frozen 2)",
+    "intoId": "catalog::elsa-frozen-2",
+    "intoPcId": "7483860"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Anna [Gold] #582",
+    "removedPcId": "7483861",
+    "removedUpc": "889698565929",
+    "into": "Anna (Frozen 2)",
+    "intoId": "catalog::anna-frozen-2",
+    "intoPcId": "7483859"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Vampire Jack [GITD] #598",
+    "removedPcId": "7483881",
+    "removedUpc": "889698503471",
+    "into": "Vampire Jack",
+    "intoId": "catalog::vampire-jack",
+    "intoPcId": "7483879"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Vampire Jack [Hot Topic Metallic] #598",
+    "removedPcId": "7951838",
+    "removedUpc": "889698444910",
+    "into": "Vampire Jack",
+    "intoId": "catalog::vampire-jack",
+    "intoPcId": "7483879"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Vampire Jack [Metallic] #598",
+    "removedPcId": "7483880",
+    "removedUpc": "",
+    "into": "Vampire Jack",
+    "intoId": "catalog::vampire-jack",
+    "intoPcId": "7483879"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Vampire Jack [Walgreens GITD] #598",
+    "removedPcId": "7951839",
+    "removedUpc": "889698503471",
+    "into": "Vampire Jack",
+    "intoId": "catalog::vampire-jack",
+    "intoPcId": "7483879"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Winnie the Pooh [Diamond] #614",
+    "removedPcId": "7483898",
+    "removedUpc": "889698516754",
+    "into": "Holiday Winnie the Pooh",
+    "intoId": "catalog::holiday-winnie-the-pooh",
+    "intoPcId": "7483896"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Summer Stitch [Hot Topic Scented] #636",
+    "removedPcId": "7911265",
+    "removedUpc": "889698460897",
+    "into": "Summer Stitch (Scented) (Special Edition)",
+    "intoId": "catalog::summer-stitch-scented",
+    "intoPcId": "7911265"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Summer Stitch [Scented] #636",
+    "removedPcId": "7483921",
+    "removedUpc": "889698460897",
+    "into": "Summer Stitch (Scented) (Special Edition)",
+    "intoId": "catalog::summer-stitch-scented",
+    "intoPcId": "7911265"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Donald Duck #715",
+    "removedPcId": "7483925",
+    "removedUpc": "889698433815",
+    "into": "Donald Duck (Firefighter) [NYCC]",
+    "intoId": "catalog::donald-duck-firefighter-[nycc]",
+    "intoPcId": "11370634"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington [Blacklight] #717",
+    "removedPcId": "7483928",
+    "removedUpc": "889698649643",
+    "into": "Jack Skellington (with Snake)",
+    "intoId": "catalog::jack-skellington-with-snake",
+    "intoPcId": "7483927"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Maleficent As The Dragon [Box Lunch] #720",
+    "removedPcId": "9146021",
+    "removedUpc": "889698445573",
+    "into": "Maleficent (Dragon)",
+    "intoId": "catalog::maleficent-dragon",
+    "intoPcId": "9146021"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Unicorn [Chase] #725",
+    "removedPcId": "7483937",
+    "removedUpc": "889698450430",
+    "into": "Unicorn (Blue Glitter Horn)",
+    "intoId": "catalog::unicorn-blue-glitter-horn",
+    "intoPcId": "7483936"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Dug [Flocked] #754",
+    "removedPcId": "8299169",
+    "removedUpc": "889698367158",
+    "into": "Dug (Remix)",
+    "intoId": "catalog::dug-remix",
+    "intoPcId": "7483967"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Randall [Pink Hearts] #761",
+    "removedPcId": "7483975",
+    "removedUpc": "",
+    "into": "Randall (Remix)",
+    "intoId": "catalog::randall-remix",
+    "intoPcId": "7483974"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Billy Butcherson [Special Edition] #773",
+    "removedPcId": "13059027",
+    "removedUpc": "889698496841",
+    "into": "Billy Butcherson",
+    "intoId": "catalog::billy-butcherson",
+    "intoPcId": "7483987"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Maleficent on Throne [Diamond] #784",
+    "removedPcId": "7639131",
+    "removedUpc": "889698583923",
+    "into": "Maleficent on Throne",
+    "intoId": "catalog::maleficent-on-throne",
+    "intoPcId": "7639130"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse #787",
+    "removedPcId": "7484002",
+    "removedUpc": "889698495509",
+    "into": "Mickey Mouse (Mickey Go Thailand)",
+    "intoId": "catalog::mickey-mouse-mickey-go-thailand",
+    "intoPcId": "7484002"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Constance Hatchaway [Chase] #803",
+    "removedPcId": "7484019",
+    "removedUpc": "889698499361",
+    "into": "Constance Hatchaway (Tombstone)",
+    "intoId": "catalog::constance-hatchaway-tombstone",
+    "intoPcId": "7484018"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Alexander Nitrokoff [Chase] #804",
+    "removedPcId": "7484021",
+    "removedUpc": "889698499354",
+    "into": "Alexander Nitrokoff",
+    "intoId": "catalog::alexander-nitrokoff",
+    "intoPcId": "7484020"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington [GITD] #808",
+    "removedPcId": "11301725",
+    "removedUpc": "889698636254",
+    "into": "Jack Skellington (Prototype)",
+    "intoId": "catalog::jack-skellington-prototype",
+    "intoPcId": "7484028"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington with Zero [Blacklight] #809",
+    "removedPcId": "7484032",
+    "removedUpc": "889698639651",
+    "into": "Jack Skellington with Zero (10-Inch) (Glow)",
+    "intoId": "catalog::jack-skellington-with-zero-10-inch-(glow)",
+    "intoPcId": "7484030"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington with Zero [GITD] #809",
+    "removedPcId": "7484031",
+    "removedUpc": "889698517744",
+    "into": "Jack Skellington with Zero (10-Inch) (Glow)",
+    "intoId": "catalog::jack-skellington-with-zero-10-inch-(glow)",
+    "intoPcId": "7484030"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Oogie Boogie [GITD] #810",
+    "removedPcId": "7484033",
+    "removedUpc": "889698496612",
+    "into": "Oogie Boogie (10-Inch) (Glow in the Dark)",
+    "intoId": "catalog::oogie-boogie-10-inch-(glow-in-the-dark)",
+    "intoPcId": "7484034"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Sorcerer Mickey [Diamond] #990",
+    "removedPcId": "7488089",
+    "removedUpc": "889698551670",
+    "into": "Sorcerer Mickey (Casting Spell)",
+    "intoId": "catalog::sorcerer-mickey-casting-spell",
+    "intoPcId": "7488088"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Jiminy Cricket [Diamond] #1026",
+    "removedPcId": "7488131",
+    "removedUpc": "889698516709",
+    "into": "Jiminy Cricket",
+    "intoId": "catalog::jiminy-cricket",
+    "intoPcId": "7488130"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Stitch [Flocked] #1045",
+    "removedPcId": "7488153",
+    "removedUpc": "889698563253",
+    "into": "Stitch",
+    "intoId": "catalog::pc-7488152",
+    "intoPcId": "7488152"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Mad Hatter [Blacklight] #1060",
+    "removedPcId": "7488174",
+    "removedUpc": "889698559874",
+    "into": "Cheshire Cat and Mad Hatter",
+    "intoId": "catalog::cheshire-cat-and-mad-hatter",
+    "intoPcId": "7488174"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "White Rabbit #1062",
+    "removedPcId": "7488176",
+    "removedUpc": "889698557399",
+    "into": "White Rabbit Mystery Mini Prototype",
+    "intoId": "catalog::white-rabbit-mystery-mini-prototype",
+    "intoPcId": "7488176"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "White Rabbit [Blacklight] #1062",
+    "removedPcId": "7488177",
+    "removedUpc": "889698559836",
+    "into": "White Rabbit Mystery Mini Prototype",
+    "intoId": "catalog::white-rabbit-mystery-mini-prototype",
+    "intoPcId": "7488176"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Tigger [Flocked] #1130",
+    "removedPcId": "7488257",
+    "removedUpc": "889698603126",
+    "into": "Tigger (Whittled)",
+    "intoId": "catalog::93222.html",
+    "intoPcId": "7488256"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Leroy [Special Edition] #1572",
+    "removedPcId": "11856142",
+    "removedUpc": "889698849340",
+    "into": "Leroy",
+    "intoId": "catalog::pc-11856139",
+    "intoPcId": "11856139"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Leroy [Specialty Series] #1572",
+    "removedPcId": "11856141",
+    "removedUpc": "889698849340",
+    "into": "Leroy",
+    "intoId": "catalog::pc-11856139",
+    "intoPcId": "11856139"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Charlotte [Chase] #1671",
+    "removedPcId": "11384242",
+    "removedUpc": "889698902625",
+    "into": "Charlotte",
+    "intoId": "catalog::90262.html",
+    "intoPcId": "11384236"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Stitch With Mood Chart [Chase] #1744",
+    "removedPcId": "12395262",
+    "removedUpc": "889698903455",
+    "into": "Stitch with Mood Chart (Deco)",
+    "intoId": "catalog::91907.html",
+    "intoPcId": "12395260"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Ember Lumen [Glitter Chase] #1757",
+    "removedPcId": "12395343",
+    "removedUpc": "",
+    "into": "Ember Lumen",
+    "intoId": "catalog::91798.html",
+    "intoPcId": "12395341"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Wade Ripple [Glitter Chase] #1758",
+    "removedPcId": "12395351",
+    "removedUpc": "",
+    "into": "Wade Ripple",
+    "intoId": "catalog::91799.html",
+    "intoPcId": "12395346"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Randall Vs Boo [Chase] #1759",
+    "removedPcId": "13256480",
+    "removedUpc": "889698885652",
+    "into": "Randall vs Boo",
+    "intoId": "catalog::88565.html",
+    "intoPcId": "13256479"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Woody [Pitcher] #3",
+    "removedPcId": "7473214",
+    "removedUpc": "",
+    "into": "Woody (Giants)",
+    "intoId": "catalog::woody-giants",
+    "intoPcId": "7473213"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Sulley [Flocked] #4",
+    "removedPcId": "7473216",
+    "removedUpc": "",
+    "into": "Sulley",
+    "intoId": "catalog::sulley",
+    "intoPcId": "7473215"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington [Blacklight] #15",
+    "removedPcId": "7473276",
+    "removedUpc": "889698639606",
+    "into": "Jack Skellington (Diamond Collection)",
+    "intoId": "catalog::jack-skellington-diamond-collection",
+    "intoPcId": "7473271"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Lightning McQueen #128",
+    "removedPcId": "7473580",
+    "removedUpc": "849803042370",
+    "into": "Lightning McQueen (Dinoco) [SDCC]",
+    "intoId": "catalog::lightning-mcqueen-dinoco-[sdcc]",
+    "intoPcId": "7473580"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Ursula #231",
+    "removedPcId": "7473897",
+    "removedUpc": "889698219228",
+    "into": "Ursula (Diamond Collection)",
+    "intoId": "catalog::ursula-diamond-collection",
+    "intoPcId": "7473898"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [Hot Topic Diamond Blue] #381",
+    "removedPcId": "7912870",
+    "removedUpc": "889698503389",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Sulley [Metallic] #385",
+    "removedPcId": "7483622",
+    "removedUpc": "889698636704",
+    "into": "Sulley (Waving) (Flocked)",
+    "intoId": "catalog::sulley-waving-(flocked)",
+    "intoPcId": "7483620"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Bunny #532",
+    "removedPcId": "7468880",
+    "removedUpc": "",
+    "into": "Bunny",
+    "intoId": "catalog::bunny",
+    "intoPcId": "7468880"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Simba [Flocked] #547",
+    "removedPcId": "7483816",
+    "removedUpc": "889698397049",
+    "into": "Simba (Live Action) (Flocked) [MCM]",
+    "intoId": "catalog::simba-live-action-(flocked)-[mcm]",
+    "intoPcId": "7483816"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Pluto #1164",
+    "removedPcId": "7488327",
+    "removedUpc": "889698596251",
+    "into": "Pluto",
+    "intoId": "catalog::pluto",
+    "intoPcId": "7488327"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Pride] #1",
+    "removedPcId": "7473209",
+    "removedUpc": "889698565806",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Skellington [GITD] #15",
+    "removedPcId": "7473273",
+    "removedUpc": "830395024684",
+    "into": "Jack Skellington (Diamond Collection)",
+    "intoId": "catalog::jack-skellington-diamond-collection",
+    "intoPcId": "7473271"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Elsa [Funko Convention] #82",
+    "removedPcId": "7473485",
+    "removedUpc": "849803043926",
+    "into": "Elsa (Transformation) [SDCC]",
+    "intoId": "catalog::elsa-transformation-[sdcc]",
+    "intoPcId": "7473486"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Woody [Black White] #168",
+    "removedPcId": "7473757",
+    "removedUpc": "889698118897",
+    "into": "Woody (20th Anniversary)(Black & White)",
+    "intoId": "catalog::woody-20th-anniversary(black-&amp;-white)",
+    "intoPcId": "7473757"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Red Jafar as Genie #356",
+    "removedPcId": "7474113",
+    "removedUpc": "889698244039",
+    "into": "Red Jafar (as Genie)",
+    "intoId": "catalog::red-jafar-as-genie",
+    "intoPcId": "7474114"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack-Jack [Hot Topic] #367",
+    "removedPcId": "7474128",
+    "removedUpc": "889698314329",
+    "into": "Jack-Jack (Giants)",
+    "intoId": "catalog::jack-jack-giants",
+    "intoPcId": "7474129"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [GITD Blue] #381",
+    "removedPcId": "7483614",
+    "removedUpc": "889698293433",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jasmine [Chase] #477",
+    "removedPcId": "7483731",
+    "removedUpc": "889698357548",
+    "into": "Jasmine (Disguised)",
+    "intoId": "catalog::jasmine-disguised",
+    "intoPcId": "7483730"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Fran Sinclair #960",
+    "removedPcId": "7484043",
+    "removedUpc": "889698470087",
+    "into": "Fran Sinclair",
+    "intoId": "catalog::fran-sinclair",
+    "intoPcId": "7492707"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Charlene Sinclair #963",
+    "removedPcId": "7484046",
+    "removedUpc": "889698470100",
+    "into": "Charlene Sinclair",
+    "intoId": "catalog::charlene-sinclair",
+    "intoPcId": "7492695"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse #1",
+    "removedPcId": "7473196",
+    "removedUpc": "889698345514",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Aurora #145",
+    "removedPcId": "7473606",
+    "removedUpc": "849803036850",
+    "into": "Aurora",
+    "intoId": "catalog::aurora",
+    "intoPcId": "7473606"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Princess Tiana and Naveen #149",
+    "removedPcId": "7473612",
+    "removedUpc": "889698546737",
+    "into": "Princess Tiana & Naveen",
+    "intoId": "catalog::princess-tiana-&amp;-naveen",
+    "intoPcId": "7473611"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Pajama Jack [Summer Convention] #205",
+    "removedPcId": "10109620",
+    "removedUpc": "849803095000",
+    "into": "Pajama Jack [SDCC]",
+    "intoId": "catalog::pajama-jack-[sdcc]",
+    "intoPcId": "7473798"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jiminy Cricket [NYCC] #980",
+    "removedPcId": "7847770",
+    "removedUpc": "889698513838",
+    "into": "Jiminy Cricket (Umbrella)",
+    "intoId": "catalog::jiminy-cricket-umbrella",
+    "intoPcId": "7484055"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Colorized Blue and Orange] #1",
+    "removedPcId": "7473230",
+    "removedUpc": "",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Colorized Blue and Pink] #1",
+    "removedPcId": "7473199",
+    "removedUpc": "",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Colorized Green and Yellow] #1",
+    "removedPcId": "7473200",
+    "removedUpc": "889698360890",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Colorized Orange and Yellow Light] #1",
+    "removedPcId": "7473201",
+    "removedUpc": "",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Colorized Orange and Yellow Saturated] #1",
+    "removedPcId": "7473202",
+    "removedUpc": "889698360920",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Colorized Purple and Pink] #1",
+    "removedPcId": "7473203",
+    "removedUpc": "",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Red Blue Colorway 9 Inch] #1",
+    "removedPcId": "7473208",
+    "removedUpc": "",
+    "into": "Mickey Mouse (Shanghai)",
+    "intoId": "catalog::mickey-mouse-shanghai",
+    "intoPcId": "7473206"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Buzz Lightyear [GITD] #2",
+    "removedPcId": "7473212",
+    "removedUpc": "",
+    "into": "Buzz Lightyear (Metallic)",
+    "intoId": "catalog::buzz-lightyear-metallic",
+    "intoPcId": "7473211"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Maleficent [9 Inch] #9",
+    "removedPcId": "7473223",
+    "removedUpc": "",
+    "into": "Maleficent",
+    "intoId": "catalog::maleficent",
+    "intoPcId": "7473222"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Steamboat Willie [9\" Metallic] #24 /360",
+    "removedPcId": "13267178",
+    "removedUpc": "889698025126",
+    "into": "Steamboat Willie",
+    "intoId": "catalog::steamboat-willie",
+    "intoPcId": "7473290"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Baymax [Disney Animation Studios] #111",
+    "removedPcId": "10235391",
+    "removedUpc": "849803047597",
+    "into": "Baymax (Diamond Collection)",
+    "intoId": "catalog::baymax-diamond-collection",
+    "intoPcId": "7473559"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Baymax [Supersuit] #112",
+    "removedPcId": "7473563",
+    "removedUpc": "",
+    "into": "Baymax (Armored) (Metallic)",
+    "intoId": "catalog::baymax-armored-(metallic)",
+    "intoPcId": "7473562"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Pumpkin King [Underground Toys GITD] #153",
+    "removedPcId": "7998892",
+    "removedUpc": "849803067243",
+    "into": "Pumpkin King (Glow In The Dark)",
+    "intoId": "catalog::pumpkin-king-glow-in-the-dark",
+    "intoPcId": "7473615"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Cheshire Cat [Underground Toys GITD] #178",
+    "removedPcId": "7951867",
+    "removedUpc": "849803078126",
+    "into": "Cheshire Cat (Movie) (Glow in the Dark)",
+    "intoId": "catalog::cheshire-cat-movie-(glow-in-the-dark)",
+    "intoPcId": "7473767"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Pocahontas [Metallic Gold] #197",
+    "removedPcId": "7473789",
+    "removedUpc": "",
+    "into": "Pocahontas (Gold)",
+    "intoId": "catalog::pocahontas-gold",
+    "intoPcId": "7473790"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Winnie The Pooh [Metallic] #252",
+    "removedPcId": "7473925",
+    "removedUpc": "",
+    "into": "Winnie the Pooh (Sitting)",
+    "intoId": "catalog::winnie-the-pooh-sitting",
+    "intoPcId": "7473922"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Jack Sparrow [Metallic Gold] #273",
+    "removedPcId": "7473995",
+    "removedUpc": "",
+    "into": "Jack Sparrow (Dead Men Tell No Tales) (Gold)",
+    "intoId": "catalog::jack-sparrow-dead-men-tell-no-tales-(gold)",
+    "intoPcId": "7473994"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Simba [Metallic Gold] #302",
+    "removedPcId": "7474034",
+    "removedUpc": "",
+    "into": "Simba (Leaf Mane) (Gold)",
+    "intoId": "catalog::simba-leaf-mane-(gold)",
+    "intoPcId": "7474034"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mr. Incredible [Chase] #363",
+    "removedPcId": "7474123",
+    "removedUpc": "",
+    "into": "Mr. Incredible (Incredibles 2)",
+    "intoId": "catalog::mr.-incredible-incredibles-2",
+    "intoPcId": "7474122"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Elastigirl [Chase] #364",
+    "removedPcId": "7474124",
+    "removedUpc": "",
+    "into": "Elastigirl (Incredibles 2)",
+    "intoId": "catalog::elastigirl-incredibles-2",
+    "intoPcId": "7474127"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [Hot Topic GITD Blue] #381",
+    "removedPcId": "7912867",
+    "removedUpc": "889698293433",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [Metallic] #381",
+    "removedPcId": "7912865",
+    "removedUpc": "889698293433",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Hades [Special Edition GITD Chase Red] #381",
+    "removedPcId": "7912869",
+    "removedUpc": "889698293433",
+    "into": "Hades (Diamond Glitter) (Special Edition)",
+    "intoId": "catalog::hades-diamond-glitter",
+    "intoPcId": "7483616"
+  },
+  {
+    "rule": "shareTokens_FALLBACK",
+    "removed": "Sora Christmas Town [EMP Pre-Release] #449",
+    "removedPcId": "7998895",
+    "removedUpc": "889698323970",
+    "into": "Sora (Christmas Town) (Special Edition)",
+    "intoId": "catalog::sora-christmas-town",
+    "intoPcId": "7998893"
+  },
+  {
+    "rule": "paren_stripped",
+    "removed": "Mickey Mouse [Colorized] #457",
+    "removedPcId": "7483704",
+    "removedUpc": "",
+    "into": "Mickey Mouse (Blue & Green) (10-Inch) [Funko-Shop]",
+    "intoId": "catalog::mickey-mouse-blue-&amp;-green-(10-inch)-[funko-shop]",
+    "intoPcId": "7483703"
+  },
+  {
+    "rule": "exact_core",
+    "removed": "Leroy [Bahrain Comic Con] #1572",
+    "removedPcId": "11856143",
+    "removedUpc": "889698849340",
+    "into": "Leroy",
+    "intoId": "catalog::pc-11856139",
+    "intoPcId": "11856139"
+  }
+]

@@ -76,6 +76,7 @@ function parseArgs() {
     pcLimit:    100000, // Pass 3: price every unpriced candidate (was 500 cap)
     pcCrawl:    true,   // Pass 3b: discover & add PriceCharting Pops not in catalog
     pcCrawlLimit: Infinity, // no cap on console-set crawl
+    pcCrawlOnly: null,      // crawl only these console slugs (comma-separated) — e.g. --pc-crawl-only funko-pop-disney,funko-pop-marvel
     pcFillUpc:  true,   // Pass 3: also revisit priced-but-no-UPC records to fill UPC
     repriceOlderThan: 0, // Pass 3: if >0, re-price records whose priceCheckedAt is
                          // older than this many days (refreshes aging prices). 0=off.
@@ -122,6 +123,7 @@ function parseArgs() {
       case '--no-pc-crawl':    opts.pcCrawl   = false; break; // opt out of Pass 3b (faster test runs)
       case '--no-pc-fill-upc': opts.pcFillUpc = false; break; // opt out of UPC top-up
       case '--pc-crawl-limit': opts.pcCrawlLimit = intArg(args[++i], opts.pcCrawlLimit); break;
+      case '--pc-crawl-only': opts.pcCrawlOnly = (args[++i]||'').split(',').map(s=>s.trim()).filter(Boolean); break;
       case '--pc-fill-upc': opts.pcFillUpc = true; break;
       case '--reprice-older-than': opts.repriceOlderThan = intArg(args[++i], opts.repriceOlderThan); break;
       case '--chrome-path': opts.chromePath = args[++i]; break;
@@ -1581,7 +1583,14 @@ async function passPriceChartingCrawl(enriched, opts) {
 
   // Discover the full Funko console set list from PriceCharting's nav, so the
   // crawl covers every category rather than a hardcoded subset.
-  const consoles = await discoverFunkoConsoles(page);
+  let consoles = await discoverFunkoConsoles(page);
+  // Optional slug filter: restrict the crawl to specific consoles.
+  if (opts.pcCrawlOnly && opts.pcCrawlOnly.length) {
+    const missing = opts.pcCrawlOnly.filter(s => !consoles.includes(s));
+    if (missing.length) console.log(`  Note: requested console slug(s) not in discovered list: ${missing.join(', ')}`);
+    consoles = consoles.filter(s => opts.pcCrawlOnly.includes(s));
+    console.log(`  Crawling only ${consoles.length} of the discovered sets: ${consoles.join(', ')}`);
+  }
   const totalSets = consoles.length;   // runtime count — never hardcoded; grows
                                        // automatically if PriceCharting adds sets.
 
@@ -1674,56 +1683,55 @@ async function passPriceChartingCrawl(enriched, opts) {
         if (targetCount > 0) console.log(`    target: ${targetCount} figures`);
         setTarget = targetCount;
 
-        let prevCount = -1, stable = 0, scrolls = 0;
-        const STABLE_NEEDED = 5;   // fallback stability when no target is known
-        const MAX_SCROLLS = 200;   // generous cap for very large sets (Marvel ~1870)
-        while (scrolls < MAX_SCROLLS) {
-          scrolls++;
-          const rowCount = await page.evaluate(() => {
-            window.scrollTo(0, document.body.scrollHeight);
-            const t = document.querySelector('#games_table tbody');
-            return t ? t.querySelectorAll('tr').length : 0;
-          });
+        // ── Row loading — deterministic scroll-to-target ─────────────────────
+        // PriceCharting console pages append rows via a scroll-triggered AJAX
+        // fetch (the js-next-page form is only the no-JS fallback; submitting it
+        // directly causes a full-page POST navigation that destroys the page
+        // context — do NOT call form.submit()). Scrolling is the correct trigger.
+        // The previous loop's flaw was giving up after a fixed 12 stalls,
+        // accepting a partial load as complete when the next AJAX batch was merely
+        // slow/rate-limited — which produced 900-of-1681 on one run and 1681 on
+        // the next for the very same page. Fix: keep scrolling as long as we are
+        // still SHORT of target, with a generous no-progress budget, nudging the
+        // scroll position (up a little, then back to bottom) to re-arm the
+        // lazy-load trigger on a stall. Verified: loads 1681/1681 in a single pass.
+        const rowCountNow = async () => page.evaluate(() => {
+          const t = document.querySelector('#games_table tbody');
+          return t ? t.querySelectorAll('tr').length : 0;
+        });
+        const nudgeScroll = async () => page.evaluate(() => {
+          // jump up then back to bottom — re-fires the scroll listener that some
+          // lazy-loaders debounce and skip on repeated bottom-hits.
+          window.scrollTo(0, Math.max(0, document.body.scrollHeight - 1500));
+          window.scrollTo(0, document.body.scrollHeight);
+        });
 
-          // PRIMARY exit: we have a target and we've reached (or passed) it.
-          if (targetCount > 0 && rowCount >= targetCount) break;
-
-          if (rowCount === prevCount) {
-            stable++;
-            // If we know the target and haven't reached it, a stalled count means
-            // lazy-load is just slow — wait longer and keep trying rather than
-            // giving up. Only accept a stall as "done" after many tries, and only
-            // when we either have no target or are within a small margin of it.
-            if (targetCount > 0) {
-              if (stable >= 12) {
-                // Stuck well short of target after many patient retries (12 ×
-                // 2500ms ≈ 30s of waiting at the same count). Take what loaded and
-                // warn — the completeness gate below will leave the set unmarked
-                // so it retries next run rather than being skipped.
-                if (rowCount < targetCount - 5) {
-                  console.log(`    [warn] loaded ${rowCount} of ${targetCount} — set may be incomplete`);
-                }
-                break;
+        let rows = await rowCountNow();
+        let best = rows;
+        let noProgress = 0;
+        const MAX_ITERS = 800;            // hard safety cap
+        const NO_PROGRESS_LIMIT = 40;     // ~40 idle tries (≈30–40s) with zero new
+                                          // rows AND still short of target = give up
+        for (let it = 0; it < MAX_ITERS; it++) {
+          if (targetCount > 0 && rows >= targetCount) break;   // reached target
+          await nudgeScroll();
+          await sleep(700);               // let the AJAX batch arrive
+          rows = await rowCountNow();
+          if (rows > best) { best = rows; noProgress = 0; }
+          else {
+            noProgress++;
+            if (noProgress >= NO_PROGRESS_LIMIT) {
+              // Truly stalled short of target after a long patient wait. Take what
+              // loaded; the completeness gate below leaves the set UNMARKED so it
+              // retries next run rather than being accepted as complete.
+              if (targetCount > 0 && rows < targetCount - 5) {
+                console.log(`    [warn] scroll stalled at ${rows} of ${targetCount} after ${noProgress} idle tries — set may be incomplete`);
               }
-              await sleep(2500);   // patient extra wait before the next try
-            } else {
-              // No target found: fall back to stability detection.
-              if (stable >= STABLE_NEEDED) {
-                await sleep(3000);
-                const confirm = await page.evaluate(() => {
-                  window.scrollTo(0, document.body.scrollHeight);
-                  const t = document.querySelector('#games_table tbody');
-                  return t ? t.querySelectorAll('tr').length : 0;
-                });
-                if (confirm === rowCount) break;
-                stable = 0; prevCount = confirm; continue;
-              }
+              break;
             }
-          } else {
-            stable = 0;
-            prevCount = rowCount;
+            // escalating backoff on a stall — the loader may be rate-limiting
+            await sleep(noProgress > 15 ? 1500 : 600);
           }
-          await sleep(900);   // let the lazy-load fire
         }
         const html = await page.content();
         stubs = parsePriceChartingListing(html);
@@ -2425,8 +2433,22 @@ function dedupeAndMerge(enriched) {
     const core = coreName(rec.title), coreNP = coreNoParens(rec.title);
     let matchIdx = -1;
     if (n && canonicalByNum.has(n)) {
+      const recPcId = rec.pricechartingId ? String(rec.pricechartingId) : '';
       for (const ci of canonicalByNum.get(n)) {
         if (toRemove.has(ci)) continue;
+        // pcId guard: a PriceCharting id uniquely identifies a product. If this
+        // record and the candidate BOTH carry a pcId and they DIFFER, they are
+        // distinct products (e.g. "Ariel" #NNN vs "Ariel [Diamond]" #NNN, or a
+        // base figure vs its [Blacklight]/[GITD]/[Chase]/[Gold] variant) — never
+        // the same figure, so never merge. coreName()/coreNoParens() strip the
+        // [bracket] and (paren) variant tags before comparing, which otherwise
+        // collapses every variant onto its base and silently deletes it; this
+        // guard is what prevents that. Verified against a full Disney crawl: it
+        // blocks 229 wrongful variant merges while preserving all 45 legitimate
+        // same-pcId dedups. Records with no pcId on one side fall through to the
+        // name test unchanged (e.g. matching a PC row to a HobbyDB canonical).
+        const candPcId = enriched[ci].pricechartingId ? String(enriched[ci].pricechartingId) : '';
+        if (recPcId && candPcId && recPcId !== candPcId) continue;
         const c = coreName(enriched[ci].title), cnp = coreNoParens(enriched[ci].title);
         // Require BOTH the funkoNumber (already matched by the byNum bucket) AND
         // a name agreement: exact core-name match, paren-stripped match, or — only

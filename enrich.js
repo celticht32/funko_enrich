@@ -1706,32 +1706,49 @@ async function passPriceChartingCrawl(enriched, opts) {
           window.scrollTo(0, document.body.scrollHeight);
         });
 
-        let rows = await rowCountNow();
-        let best = rows;
-        let noProgress = 0;
-        const MAX_ITERS = 800;            // hard safety cap
-        const NO_PROGRESS_LIMIT = 40;     // ~40 idle tries (≈30–40s) with zero new
-                                          // rows AND still short of target = give up
-        for (let it = 0; it < MAX_ITERS; it++) {
-          if (targetCount > 0 && rows >= targetCount) break;   // reached target
-          await nudgeScroll();
-          await sleep(700);               // let the AJAX batch arrive
-          rows = await rowCountNow();
-          if (rows > best) { best = rows; noProgress = 0; }
-          else {
-            noProgress++;
-            if (noProgress >= NO_PROGRESS_LIMIT) {
-              // Truly stalled short of target after a long patient wait. Take what
-              // loaded; the completeness gate below leaves the set UNMARKED so it
-              // retries next run rather than being accepted as complete.
-              if (targetCount > 0 && rows < targetCount - 5) {
-                console.log(`    [warn] scroll stalled at ${rows} of ${targetCount} after ${noProgress} idle tries — set may be incomplete`);
-              }
-              break;
+        // Scroll-to-target, wrapped in an IN-RUN RETRY. PriceCharting's lazy-load
+        // is racy: the scroll-fired AJAX for rows past the initial 150 sometimes
+        // never arms, dying at exactly 150 — but the SAME page loads fully on a
+        // fresh attempt (Marvel: 150 in one run, 1908 in another, identical code).
+        // So when a scroll stalls well short of target, restart the browser and
+        // re-crawl this same set immediately, up to STALL_RETRY_MAX times, keeping
+        // the best attempt. This beats the race in-run instead of deferring the
+        // whole set to "next run" (which just hits the same coin-flip). See DEC-030.
+        const MAX_ITERS = 800;            // hard safety cap per attempt
+        const NO_PROGRESS_LIMIT = 40;     // ~40 idle tries with zero new rows
+        const STALL_RETRY_MAX = 4;        // re-attempt a short set up to 4x
+        let bestRows = 0;
+        let scrollAttempt = 0;
+        while (true) {
+          scrollAttempt++;
+          let rows = await rowCountNow();
+          let best = rows;
+          let noProgress = 0;
+          for (let it = 0; it < MAX_ITERS; it++) {
+            if (targetCount > 0 && rows >= targetCount) break;   // reached target
+            await nudgeScroll();
+            await sleep(700);               // let the AJAX batch arrive
+            rows = await rowCountNow();
+            if (rows > best) { best = rows; noProgress = 0; }
+            else {
+              noProgress++;
+              if (noProgress >= NO_PROGRESS_LIMIT) break;   // stalled this attempt
+              await sleep(noProgress > 15 ? 1500 : 600);    // escalating backoff
             }
-            // escalating backoff on a stall — the loader may be rate-limiting
-            await sleep(noProgress > 15 ? 1500 : 600);
           }
+          if (best > bestRows) bestRows = best;
+          const reached = targetCount > 0 && best >= targetCount - 5;
+          if (reached || targetCount === 0 || scrollAttempt >= STALL_RETRY_MAX) {
+            if (!reached && targetCount > 0 && bestRows < targetCount - 5) {
+              console.log(`    [warn] scroll stalled at ${bestRows} of ${targetCount} after ${scrollAttempt} attempt(s) — set may be incomplete`);
+            }
+            break;
+          }
+          // Stalled short and retries remain: fresh browser, re-load the same set.
+          console.log(`    [stall] ${best} of ${targetCount} on attempt ${scrollAttempt} — restarting browser and re-crawling set`);
+          await restartBrowser();
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+          await sleep(1000);
         }
         const html = await page.content();
         stubs = parsePriceChartingListing(html);

@@ -290,3 +290,166 @@ guessing at structure — request the page, verify against it, then fix.
 - `export-community-delta.js` — community UPC delta export.
 - `funko_data.json` — base input. `funko_data_enriched.json` — output.
 - `test_*.js`, `dump-hdb.js`, `fix_typo.js` — one-off probes/utilities.
+
+## DEC-031 — Pass 3b crawl completeness (root fix, do not re-chase)
+
+**Symptom that kept recurring:** full runs silently truncated the crawl — whole
+tail-end waves (e.g. Guardians of the Galaxy Holiday Special #1104-1106) never
+entered the record set, and NO "may be incomplete" warning appeared in the log.
+Each prior fix patched one stall path and the failure reappeared elsewhere.
+
+**Root cause (single class of bug, three surfaces):** the crawl trusted one
+fragile signal — `targetCount`, parsed from two English-only regexes. When it
+returned 0 (locale/markup/late-load), the code treated "unknown target" as
+"done": it accepted the first ~150-row lazy-load batch, never retried, and the
+only truncation warning was gated on `targetCount > 0` so it never fired. The
+resume gate had the same disease (`setTarget>0 ? … : setRowsLoaded>0`), marking
+a truncated unknown-target set COMPLETE and skipping it forever.
+
+**Fix (in enrich.js passPriceChartingCrawl):**
+1. Target parsed from MULTIPLE independent signals (en + locale-agnostic "<N>
+   Funko", "of/de <N>", collection-tracker "/ N items", table data-attrs); take
+   the max. `targetKnown` records whether ANY signal parsed.
+2. Unknown target no longer means "done" — it means "crawl to PROVEN
+   exhaustion": require UNKNOWN_CONFIRM(3) consecutive fresh-browser attempts
+   with zero new rows before accepting. First-batch acceptance is now impossible.
+3. Resume gate only marks an unknown-target set done if it was confirmed
+   exhausted (recorded in unknownTargetSets), never on "any rows loaded".
+4. Unconditional per-set `[set-audit]` line + a run-end completeness summary
+   listing every INCOMPLETE and every UNKNOWN-target set. Truncation can never
+   again be invisible.
+
+**How to verify a future run is complete:** check the "Pass 3b completeness
+audit" block at the end. `✓ All sets loaded to their stated target` = good.
+Any set listed under INCOMPLETE or UNKNOWN = figures may be missing there;
+re-run (resume re-crawls unfinished sets) or investigate that set's page.
+`targetKnown` is hoisted (let, outside the try) so the resume gate can read it.
+
+---
+
+## Session state — 2026-07-28 (fusion guard, non-Pop filter, DQ sweep)
+
+This section is the current working state. If you are a fresh session, read this
+first — it supersedes older notes where they conflict.
+
+### Where things stand
+
+`enrich.js` now contains THREE stacked fixes, all taking effect on the NEXT full
+re-crawl:
+1. **DEC-031** crawl-truncation (see section above) — already verified working on
+   the run that produced the 30,353-record catalog.
+2. **Fusion guard** (Fix 1 below).
+3. **Non-Pop console filter** (Fix 2 below).
+
+The currently-shipped catalog (`funkodex_base_catalog.enriched.json`, 30,353
+records) still contains the fusion + Bitty problems — they are fixed in code but
+only disappear once the re-crawl regenerates the file.
+
+### Fix 1 — funkoNumber fusion guard (Pass 3 meta loop)
+
+**Symptom:** 71 records had a `funkoNumber` belonging to a DIFFERENT figure than
+their title. E.g. one record read title `Drax #50` (2014 GotG Series 1 Drax) but
+`funkoNumber: 1106` (2022 Holiday Drax) — two distinct real Pops fused into one,
+and one real figure lost from the catalog per fusion. Confirmed by external
+lookup on Drax, Gamora (#51 vs #873), Colossus (#60 vs #183) — every case is two
+real different Pops, not a mislabel.
+
+**Root cause:** in Pass 3, when `searchPriceCharting` returns an APPROXIMATE match
+(`pcMatchConfident` `conf.ok=true` but `conf.approximate=true` — PC matched a
+different figure by shared base name), the meta-transfer loop copied every field
+fill-if-missing. UPC was guarded (`upcTransferAllowed`), but `funkoNumber` rode
+through unguarded. A box number is an exact product identifier — same class as
+UPC — so the wrong figure's number got stamped onto a record that kept its own
+correct title.
+
+**Fix:** in the meta loop, `funkoNumber` now rides the same gate as UPC —
+`if (k === 'funkoNumber' && !exactIdTransferAllowed) continue;` where
+`exactIdTransferAllowed` = matched-by-upc OR exact core-name, never approximate.
+On an approximate match the field is left EMPTY, and `extractNumbersFromTitles`
+then backfills the correct number from the record's own title. (Pass 3b crawl
+apply is already safe — there rec and detail come from the same product page.)
+
+**Recovery of the 71:** chosen approach is re-crawl fresh, NOT file-surgery — a
+clean run with the guard regenerates both figures correctly from their own PC
+pages. Post-run, verify both `Drax #50` AND `Drax #1106` exist as separate
+records.
+
+### Fix 2 — non-Pop console filter (isNonPop)
+
+**Symptom:** 412 non-Pop records shipped in the catalog — 298 Bitty Pop, 89
+Fantastik Plastik, 25 Mystery Minis. Bitty Pops (0.9" multipack micro-figures)
+and Mystery Minis (blind-box minis) are not Pops; Fantastik Plastik is a separate
+Funko vinyl line.
+
+**Root cause:** `isNonPop`'s first line `if (rec.funkoSource) return false` skips
+all pricecharting records as pre-vetted — but these ARE pricecharting crawl rows,
+and their titles are plain character names ("Ralph", "Ursula") so no title/series/
+image filter would catch them anyway. The only reliable signal is the PriceCharting
+console slug in `pricechartingUrl` (`.../game/<console>/...`).
+
+**Fix:** added `NON_POP_CONSOLES` = {funko-pop-bitty, funko-pop-minis,
+funko-pop-fantastik-plastik} + a `pcConsoleOf(rec)` helper, and a check
+`if (NON_POP_CONSOLES.has(pcConsoleOf(rec))) return true;` placed BEFORE the
+`funkoSource` early-return. Simulated on the real file: drops exactly 412, zero
+collateral (30,353 → 29,941).
+
+**KEEP (do not add to NON_POP_CONSOLES)** — these are real Pop sub-lines and
+dropping them would delete real figures: the "covers" families (comic-covers,
+vhs-covers, movie-posters, magazine-covers, game-covers, art-cover, art-series),
+albums, 8-bit, die-cast, plus, moment, deluxe-moment, trading-cards.
+
+NOTE: the bitty console is auto-discovered by `discoverFunkoConsoles()` from PC's
+`/category/funko-pops` page, so removing it from the hardcoded `PC_FUNKO_CONSOLES`
+fallback list would NOT stop the crawl — the removal filter is the right layer.
+
+### Post-re-crawl verification checklist
+
+1. `Pass 3b completeness audit` block shows `✓ All sets loaded to their stated target`.
+2. Fusion check: no record where a `#NN` in the title != `funkoNumber`, EXCLUDING
+   ~8 comic-cover false positives (comic covers, "Tales of Suspense #39/40",
+   "Avengers #57", "Vol N" — where #NN is a comic issue number, legit content).
+3. Bitty / Mystery Minis / Fantastik Plastik count = 0.
+4. Both `Drax #50` and `Drax #1106` exist as separate records.
+Then rebuild the app asset: `build_catalog_asset.py` → copy `.gz_` to
+`app\src\main\assets\`, bump `CatalogPreloader.CATALOG_VER`, verify the APK entry
+is ~2.3 MB, fresh-install, confirm logcat `Catalog loaded: <N> items`.
+
+### Open DQ backlog (found this session, NOT yet fixed)
+
+In rough priority:
+- **~183 non-Bitty UPC collisions** — different figures sharing one barcode (e.g.
+  Mothman #27 / Loch Ness #18 on UPC 883975152741; Naruto #726 / Sasuke #1436).
+  Some are legit (other multipack lines, or one figure listed under two PC
+  consoles), some are genuine mis-staples. NEEDS per-figure external verification —
+  DO NOT auto-fix.
+- **17 SKU-as-funkoNumber records** — a retailer SKU landed in `funkoNumber`
+  instead of the box number (Raichu #171367, Freddie Mercury #85872, mostly
+  Pokémon + convention exclusives; all >50000). Likely a HobbyDB reference-parse
+  issue. Small, isolated.
+- **141 true-duplicate clusters** — same figure as two records (usually base vs
+  pc- crawl record, e.g. Darth Vader #1 twice), identical title+number.
+  Mechanically collapsible, low risk.
+- **78 leading-zero funkoNumbers** — `#08` vs `#8` inconsistency, mostly "...Box"
+  records. Trivial normalize.
+- **~39 variant-merge groups** — base + variant that should be one record
+  (Wonder Woman Box #08 + Wonder Woman (Metallic) #8), shared UPC is correct.
+
+**Structural health otherwise EXCELLENT:** 0 duplicate _id, 0 handle mismatch,
+series 100% string-typed, prices sane, no true shells (the ~5,591 sparse records
+are valid base records pending the app's live-tier fill).
+
+**CLEARED this session (not DQ problems):** V #223 (BTS Dynamite V, Funko Item
+48113) and L #219 (Death Note L with Cake, Funko Item 93291) — legitimately
+single-letter real names, both externally verified. And Bitty/multipack shared
+UPCs are correct by design (a Bitty 4-pack shares one barcode across its figures).
+
+### Hard-won process rule (this project)
+
+NEVER adjudicate a figure's identity from inside the file — verify against an
+external source (funko.com / PriceCharting / eBay). "Same number across different
+names" and "same UPC across different figures" are both CANDIDATES to verify, not
+errors to auto-fix: cross-series number reuse is normal (Gamora #51 vs #873, L
+#219 Death Note vs a DC figure), and multipack/variant shared UPCs are legitimate.
+This session, identity guesses made from the file alone were wrong three times and
+caught by the user each time; every fix that stuck was grounded in an external
+lookup.

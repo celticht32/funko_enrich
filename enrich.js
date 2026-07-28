@@ -1328,14 +1328,29 @@ async function passPriceCharting(enriched, opts) {
       // fill-if-missing behaviour, since a slightly-off price is harmless where a
       // wrong UPC is corrupting.
       const meta = (detail && detail.meta) || {};
-      const upcTransferAllowed =
+      // upcTransferAllowed gates the transfer of EXACT product identifiers from
+      // the matched PriceCharting page. A box number (funkoNumber) is exactly
+      // such an identifier — it uniquely names one Pop, same as a UPC — so it
+      // must ride the SAME gate, not the plain fill-if-missing path.
+      //
+      // Without this, an approximate match (PC matched a DIFFERENT figure by
+      // shared base name — e.g. "Drax" search lands on Holiday Drax #1106 while
+      // enriching the 2014 Drax #50 record) stamped the wrong figure's box
+      // number onto a record that kept its own correct title. Result: title from
+      // figure A, funkoNumber from figure B — the exact fusion that scrambled 71
+      // records and dropped one real figure per fusion from the catalog. UPC was
+      // already guarded for this identical mis-staple class; funkoNumber was the
+      // one exact-identity field left riding through unguarded.
+      const exactIdTransferAllowed =
         match._matchedBy === 'upc' ||
         match._matchedBy === 'upc-multi' ||
         (!conf.approximate && coreNameExact(rec.title, match.name));
+      const upcTransferAllowed = exactIdTransferAllowed;  // preserved name for clarity
       let metaFilled = 0;
       for (const [k, v] of Object.entries(meta)) {
         if (k === 'upc' && !upcTransferAllowed) continue;         // block mis-staple
         if (k === 'upc' && !upcaChecksumOk(v)) continue;          // block malformed barcode
+        if (k === 'funkoNumber' && !exactIdTransferAllowed) continue;  // block box-number fusion (same class as UPC)
         if (v && (rec[k] === undefined || rec[k] === null || rec[k] === '')) {
           updates[k] = v;
           metaFilled++;
@@ -1580,6 +1595,11 @@ async function passPriceChartingCrawl(enriched, opts) {
 
   let discovered = 0, added = 0, pages = 0, withUpc = 0, limitHit = false;
   const crawlLimit = opts.pcCrawlLimit || Infinity;
+  // Run-level completeness audit (DEC-031). Populated per set; summarized at the
+  // end so a truncated crawl is impossible to miss — the exact failure that let
+  // whole waves (e.g. GotG Holiday #1104-1106) silently never enter the catalog.
+  const incompleteSets = [];      // KNOWN target but loaded < target
+  const unknownTargetSets = [];   // no count signal parsed at all
 
   // Discover the full Funko console set list from PriceCharting's nav, so the
   // crawl covers every category rather than a hardcoded subset.
@@ -1634,6 +1654,7 @@ async function passPriceChartingCrawl(enriched, opts) {
       const url = `${PC_BASE}/console/${slug}`;
       let stubs = [];
       let setTarget = 0;       // PriceCharting's stated figure count for this set
+      let targetKnown = false; // did ANY count signal parse? (hoisted: used by the resume gate below, outside the try)
       let setRowsLoaded = 0;   // rows we actually loaded
       let pageLoadFailed = false;
       try {
@@ -1672,15 +1693,33 @@ async function passPriceChartingCrawl(enriched, opts) {
         // count reaches it — deterministic completeness instead of guessing from
         // "row count stopped changing", which truncated big sets (Marvel showed
         // 1050 of its real 1870 because lazy-load paused and we accepted it).
-        const targetCount = await page.evaluate(() => {
-          const text = document.body.innerText;
-          // Format A: "Prices for all 1870 Funko <set> Figures"
-          let m = text.match(/for all\s+([\d,]+)\s+Funko/i);
-          // Format B: "You own: 0 / 520 items"  (collection-tracker header)
-          if (!m) m = text.match(/\/\s*([\d,]+)\s+items/i);
-          return m ? parseInt(m[1].replace(/,/g, ''), 10) : 0;
+        // Target = PriceCharting's stated size for this set. Parsed from MULTIPLE
+        // independent signals so a single wording/locale/markup change can't send
+        // it to 0 (which historically made the crawl accept the first ~150-row
+        // lazy-load batch and silently drop every later figure — see DEC-031).
+        // We collect ALL candidates and take the max: these headers all describe
+        // the same full set, and a partial/df-filtered count is always <= true.
+        const targetInfo = await page.evaluate(() => {
+          const text = document.body.innerText || '';
+          const cands = [];
+          const push = (s) => { if (s) { const n = parseInt(String(s).replace(/,/g, ''), 10); if (Number.isFinite(n) && n > 0) cands.push(n); } };
+          // A: "Prices for all 1870 Funko <set> Figures" (en)
+          let m; const reAll = /for all\s+([\d,]+)\s+Funko/ig; while ((m = reAll.exec(text))) push(m[1]);
+          // B: collection-tracker "… / 520 items"
+          const reItems = /\/\s*([\d,]+)\s+items/ig; while ((m = reItems.exec(text))) push(m[1]);
+          // C: locale-agnostic "<N> Funko … Figures/Figuras/…" (es/pt/etc all keep the digits + "Funko")
+          const reLocale = /([\d,]{2,})\s+Funko\b/ig; while ((m = reLocale.exec(text))) push(m[1]);
+          // D: pagination/counter widgets that print "of <N>" or "de <N>"
+          const reOf = /\b(?:of|de)\s+([\d,]{2,})\b/ig; while ((m = reOf.exec(text))) push(m[1]);
+          // E: a data attribute some PC pages carry on the table
+          const tbl = document.querySelector('#games_table');
+          if (tbl) { push(tbl.getAttribute('data-total')); push(tbl.getAttribute('data-count')); }
+          return { max: cands.length ? Math.max(...cands) : 0, hadAny: cands.length > 0 };
         });
-        if (targetCount > 0) console.log(`    target: ${targetCount} figures`);
+        const targetCount = targetInfo.max;
+        targetKnown = targetInfo.hadAny;   // did ANY signal yield a number?
+        if (targetKnown) console.log(`    target: ${targetCount} figures`);
+        else console.log(`    target: UNKNOWN (no count signal parsed) — will crawl to true exhaustion`);
         setTarget = targetCount;
 
         // ── Row loading — deterministic scroll-to-target ─────────────────────
@@ -1717,15 +1756,34 @@ async function passPriceChartingCrawl(enriched, opts) {
         const MAX_ITERS = 800;            // hard safety cap per attempt
         const NO_PROGRESS_LIMIT = 40;     // ~40 idle tries with zero new rows
         const STALL_RETRY_MAX = 4;        // re-attempt a short set up to 4x
+        // ── Completeness policy (DEC-031: no silent truncation, ever) ────────
+        // The old logic had three holes, each a silent under-collect:
+        //   1. targetCount===0 broke the loop immediately (accept first batch).
+        //   2. an unknown target could never trigger a retry.
+        //   3. the ONLY truncation signal was a warning gated on targetCount>0,
+        //      so a 0-target run produced NO warning at all.
+        // New rule: a set is "done" ONLY when one of these is true —
+        //   (a) KNOWN target and we loaded it (within tolerance), OR
+        //   (b) UNKNOWN target and row growth is TRULY exhausted — proven by
+        //       several consecutive full attempts (fresh browser each) that add
+        //       zero new rows. First-batch acceptance is impossible now.
+        // Every set logs a completeness verdict unconditionally, so truncation
+        // can never again be invisible in the run log.
+        const KNOWN_RETRY_MAX   = STALL_RETRY_MAX;  // 4 re-crawls when short of a KNOWN target
+        const UNKNOWN_RETRY_MAX  = 8;               // more patience when we can't see a target
+        const UNKNOWN_CONFIRM     = 3;              // # of consecutive no-growth attempts that prove exhaustion
+        const RETRY_MAX = targetKnown ? KNOWN_RETRY_MAX : UNKNOWN_RETRY_MAX;
         let bestRows = 0;
         let scrollAttempt = 0;
+        let unknownStableStreak = 0;   // consecutive attempts with no improvement (unknown-target path)
+        let doneReason = '';
         while (true) {
           scrollAttempt++;
           let rows = await rowCountNow();
           let best = rows;
           let noProgress = 0;
           for (let it = 0; it < MAX_ITERS; it++) {
-            if (targetCount > 0 && rows >= targetCount) break;   // reached target
+            if (targetCount > 0 && rows >= targetCount) break;   // reached known target
             await nudgeScroll();
             await sleep(700);               // let the AJAX batch arrive
             rows = await rowCountNow();
@@ -1736,19 +1794,42 @@ async function passPriceChartingCrawl(enriched, opts) {
               await sleep(noProgress > 15 ? 1500 : 600);    // escalating backoff
             }
           }
-          if (best > bestRows) bestRows = best;
-          const reached = targetCount > 0 && best >= targetCount - 5;
-          if (reached || targetCount === 0 || scrollAttempt >= STALL_RETRY_MAX) {
-            if (!reached && targetCount > 0 && bestRows < targetCount - 5) {
-              console.log(`    [warn] scroll stalled at ${bestRows} of ${targetCount} after ${scrollAttempt} attempt(s) — set may be incomplete`);
-            }
-            break;
+          const improved = best > bestRows;
+          if (improved) bestRows = best;
+
+          if (targetKnown) {
+            // KNOWN target: done when we reach it (tolerance 5), else retry until
+            // RETRY_MAX, then stop and flag loudly.
+            if (best >= targetCount - 5) { doneReason = 'reached target'; break; }
+            if (scrollAttempt >= RETRY_MAX) { doneReason = 'retries exhausted SHORT'; break; }
+            console.log(`    [stall] ${best} of ${targetCount} on attempt ${scrollAttempt} — restarting browser and re-crawling set`);
+          } else {
+            // UNKNOWN target: the ONLY safe stop is proven exhaustion. Count
+            // consecutive attempts that added nothing; require UNKNOWN_CONFIRM of
+            // them in a row before believing the set is fully loaded. Any
+            // improvement resets the streak.
+            if (improved) unknownStableStreak = 0; else unknownStableStreak++;
+            if (unknownStableStreak >= UNKNOWN_CONFIRM) { doneReason = `exhausted (no growth x${UNKNOWN_CONFIRM}, ${bestRows} rows)`; break; }
+            if (scrollAttempt >= RETRY_MAX) { doneReason = `retry cap hit (unknown target, ${bestRows} rows)`; break; }
+            console.log(`    [probe] ${best} rows, no known target — re-crawling to confirm exhaustion (attempt ${scrollAttempt}, stable ${unknownStableStreak}/${UNKNOWN_CONFIRM})`);
           }
-          // Stalled short and retries remain: fresh browser, re-load the same set.
-          console.log(`    [stall] ${best} of ${targetCount} on attempt ${scrollAttempt} — restarting browser and re-crawling set`);
+          // Fresh browser, re-load the same set, try again.
           await restartBrowser();
           await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
           await sleep(1000);
+        }
+
+        // Unconditional per-set completeness verdict — the audit signal that was
+        // missing. `incomplete` is only meaningful for a KNOWN target; for an
+        // unknown target we report exhaustion honestly rather than pretending.
+        if (targetKnown) {
+          const shortBy = targetCount - bestRows;
+          const ok = shortBy <= 5;
+          console.log(`    [set-audit] ${slug}: loaded ${bestRows}/${targetCount} — ${ok ? 'COMPLETE' : `INCOMPLETE (short ${shortBy})`} [${doneReason}]`);
+          if (!ok) incompleteSets.push({ slug, loaded: bestRows, target: targetCount, short: shortBy });
+        } else {
+          console.log(`    [set-audit] ${slug}: loaded ${bestRows}/UNKNOWN — ${doneReason}`);
+          unknownTargetSets.push({ slug, loaded: bestRows });
         }
         const html = await page.content();
         stubs = parsePriceChartingListing(html);
@@ -1823,7 +1904,15 @@ async function passPriceChartingCrawl(enriched, opts) {
       // actually loaded acceptably. A set that loaded 0 rows (transient empty page)
       // or stalled well short of PriceCharting's stated target is left UNMARKED so
       // the next run retries it, instead of being silently skipped forever.
-      const reachedTarget = setTarget > 0 ? (setRowsLoaded >= setTarget - 5) : (setRowsLoaded > 0);
+      // DEC-031: for an UNKNOWN target we must NOT accept on "any rows loaded" —
+      // that let a set truncated at 150 rows be marked complete and skipped
+      // forever. When the target is unknown we only mark done if the scroll loop
+      // reported genuine EXHAUSTION (it recorded the set in unknownTargetSets with
+      // its exhausted row count); a page error or 0 rows still blocks completion.
+      const exhaustedUnknown = !targetKnown && unknownTargetSets.some(s => s.slug === slug);
+      const reachedTarget = targetKnown
+        ? (setRowsLoaded >= setTarget - 5)   // known target: within tolerance
+        : exhaustedUnknown;                  // unknown target: proven exhausted, not just non-empty
       const acceptable = !pageLoadFailed && setRowsLoaded > 0 && reachedTarget;
 
       if (acceptable) {
@@ -1833,7 +1922,8 @@ async function passPriceChartingCrawl(enriched, opts) {
       } else {
         const why = pageLoadFailed ? 'page error'
                   : setRowsLoaded === 0 ? 'loaded 0 rows'
-                  : `loaded ${setRowsLoaded} of ${setTarget}`;
+                  : targetKnown ? `loaded ${setRowsLoaded} of ${setTarget}`
+                  : `loaded ${setRowsLoaded}, target unknown & not confirmed exhausted`;
         console.log(`    set NOT marked done (${why}) — ${newThisSet} new; will retry next run`);
         // Still persist the records we DID get, just don't mark the set complete.
         saveProgress();
@@ -1851,7 +1941,27 @@ async function passPriceChartingCrawl(enriched, opts) {
   }
 
   console.log(`  Pages crawled: ${pages} | New Pops added: ${added} | With UPC (scannable): ${withUpc}`);
-  return { discovered, added, pages, withUpc };
+
+  // ── Run-level completeness audit (DEC-031) ───────────────────────────────
+  // The single most important line of the crawl: it makes truncation loud.
+  // If either list is non-empty, sets did NOT fully load and figures are
+  // missing — re-run (resume will re-crawl unfinished sets) or investigate.
+  console.log(`\n── Pass 3b completeness audit ─────────────────────────────`);
+  if (incompleteSets.length === 0 && unknownTargetSets.length === 0) {
+    console.log('  ✓ All sets loaded to their stated target. No truncation detected.');
+  } else {
+    if (incompleteSets.length) {
+      console.log(`  ⚠ ${incompleteSets.length} set(s) loaded SHORT of a known target:`);
+      for (const s of incompleteSets) console.log(`      ${s.slug}: ${s.loaded}/${s.target} (short ${s.short})`);
+    }
+    if (unknownTargetSets.length) {
+      console.log(`  ⚠ ${unknownTargetSets.length} set(s) had NO parseable target (crawled to exhaustion, but verify):`);
+      for (const s of unknownTargetSets) console.log(`      ${s.slug}: ${s.loaded} rows (target unknown)`);
+    }
+    console.log('  → These are not fatal: records that DID load are saved, and a');
+    console.log('    resume re-crawls unfinished sets. But missing figures live here.');
+  }
+  return { discovered, added, pages, withUpc, incompleteSets, unknownTargetSets };
 }
 
 
@@ -2552,6 +2662,31 @@ const NON_POP_SERIES = [
   'something wild', 'funko games -',
 ];
 
+// PriceCharting console slugs that are NOT the standard Pop! line, so every record
+// crawled from them should be dropped regardless of title. These evade the title/
+// series/image filters because the crawled records carry a plain character name
+// (e.g. Bitty "Ralph", Mystery-Mini "Ursula") — the ONLY signal that they are a
+// non-Pop line is the console they came from, read from pricechartingUrl
+// (.../game/<console>/<slug>). Bitty Pop (0.9" multipack micro-figures) and
+// Mystery Minis (blind-box minis) are not Pops; Fantastik Plastik is a separate
+// Funko vinyl line (Roodles/Meowchi/etc.), not the Pop! line. Chris-confirmed
+// 2026-07 after 412 such records shipped in the 30,353 catalog. NOTE: the Pop!
+// "covers" families (comic-covers, vhs-covers, movie-posters, album, 8-bit,
+// moment, die-cast, plus, trading-cards, art-series) ARE real Pop sub-lines and
+// are deliberately NOT here — dropping them would delete real figures.
+const NON_POP_CONSOLES = new Set([
+  'funko-pop-bitty',
+  'funko-pop-minis',
+  'funko-pop-fantastik-plastik',
+]);
+
+// Read the PriceCharting console slug from a record's pricechartingUrl.
+// Returns '' when there is no PC url (non-PriceCharting record).
+function pcConsoleOf(rec) {
+  const m = /\/game\/([^/]+)\//.exec(String(rec.pricechartingUrl || ''));
+  return m ? m[1] : '';
+}
+
 // HobbyDB files each catalog photo under a product-CATEGORY token embedded in the
 // image URL (e.g. ".../White_Bone_Demon_Vinyl_Art_Toys_<hash>.jpg" for a Pop, but
 // ".../Chewbacca_Pint_Glass_Glasses_and_Barware_<hash>.jpg" for merch). When the
@@ -2567,6 +2702,16 @@ const NON_POP_SERIES = [
 const NON_POP_IMAGE_CATEGORY = /_(Pins_and_Badges|Shirts_and_Jackets|Glasses_and_Barware|Hats|Bags|Wallets|Lanyards|Luggage_Tags|Display_Cases|Hoodies|Socks|Keychains)_[0-9a-f]{6,}/i;
 
 function isNonPop(rec) {
+  // Console check runs FIRST — before the funkoSource early-return below — because
+  // the records this catches ARE pricecharting-sourced (Bitty/Mystery-Minis/
+  // Fantastik-Plastik crawl rows). The early-return skips all pricecharting records
+  // on the assumption they're pre-vetted Pops, which is exactly how 412 non-Pop
+  // records from these lines slipped into the catalog: their titles are plain
+  // character names, so no title/series/image filter fires, and the early-return
+  // meant they were never checked at all. The console slug is the only reliable
+  // signal, so it must be tested up front.
+  if (NON_POP_CONSOLES.has(pcConsoleOf(rec))) return true;
+
   // funko.com records already filtered — only check HobbyDB originals
   if (rec.funkoSource) return false;
 
